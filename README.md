@@ -28,17 +28,45 @@ displayed by cycle-exact 6502 code.
 `go.sh` runs `setup.sh` on first use, which checks prerequisites and builds
 the bundled ZX0 cruncher.
 
-### Prerequisites (macOS)
+### Prerequisites
 
-| What | Install |
-|---|---|
-| [ACME](https://sourceforge.net/projects/acme-crossass/) cross-assembler | `brew install acme` |
-| [VICE](https://vice-emu.sourceforge.io) emulator (`x64sc`, `c1541`) | `brew install vice` |
-| Python 3 with Pillow + numpy | `brew install python`, rest via `setup.sh` |
-| C compiler + make (for the cruncher) | `xcode-select --install` |
+You need four things; `setup.sh` checks them and prints the exact install
+commands for your platform: the
+[ACME](https://sourceforge.net/projects/acme-crossass/) cross-assembler,
+[VICE](https://vice-emu.sourceforge.io) (`x64sc`, `c1541`), Python 3
+(Pillow + numpy, installed by `setup.sh`), and a C compiler + make for the
+bundled ZX0 cruncher.
 
-Linux works too with the same tools from your package manager
-(`acme`, `vice`, `python3-pil`, `python3-numpy`, `build-essential`).
+**macOS**
+
+```bash
+brew install acme vice python
+xcode-select --install        # C compiler, if you don't have it
+./go.sh
+```
+
+**Linux** (Debian/Ubuntu shown; Arch/Fedora analogous)
+
+```bash
+sudo apt install acme vice build-essential python3 python3-pil python3-numpy
+./go.sh
+```
+
+Note: Debian/Ubuntu ship VICE without the Commodore ROMs. Grab a VICE
+release tarball from [vice-emu.sourceforge.io](https://vice-emu.sourceforge.io)
+and copy its `C64/` ROM directory to `~/.local/share/vice/C64/` (or point
+`VICE_DATADIR` at it). `c1541` and the build work without ROMs — only the
+emulator needs them.
+
+**Windows**
+
+Use **WSL2** (Ubuntu) and follow the Linux steps above — on Windows 11 the
+VICE window appears via WSLg automatically. Native Windows is possible
+(ACME, VICE, and Python all have Windows builds, and the disk image
+`build/slideshow.d64` is fully portable), but the helper scripts are POSIX
+shell; you'd run the Python steps by hand and build `dali` with MSYS2/MinGW.
+Easiest native route: build the `.d64` in WSL, then open it with the
+Windows VICE — or write it straight to real hardware.
 
 ## Using your own photos
 
