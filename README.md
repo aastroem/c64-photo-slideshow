@@ -13,7 +13,7 @@ displayed by cycle-exact 6502 code.
   photo loads *underneath* the running FLI display, so there are no black
   screens, fades, or degraded frames, ever
 - in-house 3-voice SID tune plays throughout (swap in your own)
-- joystick-2 fire or space skips ahead
+- joystick-2 fire or space skips ahead (`SCANLINES=1 ./run_emulator.sh` for a CRT look)
 - portrait photos are auto-fitted with colored side bars
 - slide order: a file named `01.*` goes first, the rest follow EXIF capture time
 - runs on real hardware (PAL C64 + 1541, Ultimate 64, 1541UII) and in VICE
