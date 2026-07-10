@@ -58,11 +58,16 @@ the asm on tools/cpu6502.py.
   lines 196-199 jointly and emits one shared screen byte per cell for them,
   so the display is pixel-identical to the converter's output anyway.
 - Line 1 (the first LATE badline) follows line 0's normal badline, whose
-  halt window differs by one cycle from steady state -- the generated code
-  makes the first unrolled block 1 cycle shorter, or the FLI bug widens to
-  4 chars on that line only. The per-line halts re-sync the chain after it.
-- Verified pixel-exact against preview.py in VICE (0 mismatches, all 200
-  lines; VICE renders a brightened palette — extract it empirically from a
+  halt window differs by ~1 cycle from steady state, widening the FLI bug
+  into char column 3 on that single line (4 multicolor pixels). Trimming
+  the first unrolled block by 1 cycle fixes it on paper but halves the
+  timing margin -- residual frame-to-frame IRQ jitter then flips line 1
+  into an occasional EARLY badline (row-counter reset = visibly shaky
+  frames), so it was reverted. A truly jitter-free stabilizer would allow
+  it; until then those 4 static pixels are the accepted imperfection.
+- Verified pixel-exact against preview.py in VICE (0 mismatches on lines
+  2-199 incl. the badline-window tail; 4 known pixels on line 1, above;
+  VICE renders a brightened palette — extract it empirically from a
   probe screenshot, don't trust the .vpl values for comparisons).
 
 ## Krill's loader v194 — integration rules (each one cost blood)
