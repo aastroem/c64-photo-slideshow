@@ -93,6 +93,18 @@ directly; ZoomFloppy + nibtools writes physical disks). Boot with
 `LOAD"*",8,1` then `RUN`. PAL machines only. SD2IEC does **not** work — the
 fast loader runs custom code in the 1541's drive CPU.
 
+### FPGA cores / Analogue Pocket
+
+The build also emits **`build/slideshow.g64`** — the same disk as a
+GCR-level image, for devices whose 1541 emulation only accepts `.g64`, such
+as the [MyC64 core](https://github.com/markus-zzz/myc64-pocket) for the
+Analogue Pocket (load it via *Core Settings → Load G64 Slot*, then type
+`LOAD"*",8,1` and `RUN`). The converter is `d64tog64.py` (pure Python, no
+nibtools needed) and its output is verified to boot in VICE's GCR-level
+drive emulation. Heads-up: the slideshow leans on cycle-exact VIC-II (FLI)
+and drive timing (fast loader), which is demanding for work-in-progress
+cores — a stock PAL C64 core in VICE-class accuracy is the reference.
+
 The music lives in `src/music.asm` as three simple `note,duration` streams —
 easy to replace with your own tune.
 

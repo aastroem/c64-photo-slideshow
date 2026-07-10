@@ -109,6 +109,9 @@ def main():
           f"pics {per_pic})")
     assert used <= MAX_BLOCKS, "disk over capacity"
 
+    import d64tog64
+    d64tog64.convert(d64, BUILD / "slideshow.g64")
+
 
 if __name__ == "__main__":
     main()
