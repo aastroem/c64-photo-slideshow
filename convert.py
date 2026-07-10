@@ -47,7 +47,7 @@ class Settings:
     sat: float = 1.1
     gamma: float = 1.0
     crop: str = "0,0"       # fractional offset of the crop window, -1..1
-    pad: int = 11           # C64 color for the side bars on portrait photos
+    pad: int = 0            # C64 color for the side bars on portrait photos
 
 
 def sidecar_path(photo):

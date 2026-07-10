@@ -84,7 +84,7 @@ python3 mkdisk.py --dir my-photos/        # rebuilds only what changed
   (calm skies), or hybrid (default: ordered in flat areas, FS at edges)
 - `--strength`, `--sat`, `--gamma` — dither amount, saturation, gamma
 - `--crop dx,dy` — shift the crop window (−1..1)
-- `--pad 0-15` — side-bar color for portrait photos (default 11, dark grey)
+- `--pad 0-15` — side-bar color for portrait photos (default 0, black)
 
 ## Real hardware
 
