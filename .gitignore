@@ -1,0 +1,15 @@
+# generated: disk images, conversions, previews, tables
+/build/
+# your photos and their sidecars stay local
+/photos/
+# compiled cruncher (built by setup.sh)
+src/loader/loader/tools/dali/dali
+src/loader/loader/tools/dali/salvador.a
+src/loader/loader/tools/dali/salvador/obj/
+src/loader/loader/tools/dali/sfx_small
+src/loader/loader/tools/dali/sfx_fast
+src/loader/loader/tools/dali/*.lst
+
+__pycache__/
+.DS_Store
+*.wav

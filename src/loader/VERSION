@@ -1,0 +1,15 @@
+Krill's Loader, repository version 194 (Plush)
+Source: https://csdb.dk/release/?id=226124
+Download: https://csdb.dk/getinternalfile.php/238373/loader-v194.zip
+License: see loader/README (free to use; BSD-style disclaimer)
+
+Built locally with ca65 (brew cc65) via:
+  EXTCONFIGPATH=../ourconfig make PLATFORM=c64 prg INSTALL=0900 RESIDENT=0200 ZP=e0
+Config trimmed in ourconfig/loaderconfig.inc:
+  ONLY_1541_AND_COMPATIBLE=1, DECOMPRESSOR=NONE, LOAD_COMPD_API=0
+Produces: loader/build/install-c64.prg ($0900-$1597),
+          loader/build/loader-c64.prg ($0200-$02DF), loadersymbols-c64.inc
+IMPORTANT usage constraints found the hard way (see notes/slideshow.md):
+  - $DD00 writes while the loader is resident: upper 6 bits MUST be 0
+  - resident at $0200 overlaps KERNAL kbd buffer/RS232 vars: SEI before
+    copying it there and never return to BASIC/KERNAL afterwards
