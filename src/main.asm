@@ -6,7 +6,8 @@
 ; Music plays throughout via the per-frame IRQ. PAL only.
 ;   acme -I src -I build/gen -f cbm -o build/main.prg src/main.asm
 
-LOADCOMPD = $020e               ; Krill resident (see loadersymbols-c64.inc)
+!src "loader/loader/build/loadersymbols-c64.inc"  ; loadcompd entry
+LOADCOMPD = loadcompd
 dis_lo  = $c400                 ; runtime-generated dissolve order
 dis_hi  = $c800
 

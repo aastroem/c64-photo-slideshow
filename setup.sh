@@ -39,8 +39,8 @@ done
 [ -n "$MISSING" ] && { echo; echo "install the missing tools above, then re-run ./setup.sh"; exit 1; }
 
 echo "== python packages"
-if python3 -c "import PIL, numpy" 2>/dev/null; then
-    echo "ok: Pillow, numpy already available"
+if python3 -c "import PIL, numpy, pytest" 2>/dev/null; then
+    echo "ok: Pillow, numpy, pytest already available"
 else
     # PEP 668 distros refuse plain pip installs; fall back accordingly
     python3 -m pip install --quiet Pillow numpy pytest 2>/dev/null \

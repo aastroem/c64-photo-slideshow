@@ -56,6 +56,17 @@ def test_left_columns_black():
     assert not img.color[:, :3].any()
 
 
+def test_tail_lines_share_screen_colors():
+    # rasters 248-250 redisplay line 196's screen colors on real hardware;
+    # the converter emits identical bytes for banks 4-7 of the last cell
+    # row so the display matches the intent exactly
+    rng = np.random.default_rng(5)
+    noise = rng.integers(0, 256, (600, 800, 3), dtype=np.uint8)
+    img = convert.convert_image(Image.fromarray(noise), convert.Settings())
+    for bank in (5, 6, 7):
+        assert (img.screens[bank, 24] == img.screens[4, 24]).all()
+
+
 def test_portrait_gets_padded_sides():
     img = convert.convert_image(solid(PALETTE_RGB[5], size=(600, 800)),
                                 convert.Settings(dither="bayer4", pad=11))

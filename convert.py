@@ -129,6 +129,26 @@ def pick_attributes(lab):
             best_a[better] = a
             best_b[better] = b
 
+    # Lines 196-199 share one screen byte per cell: rasters 248-250 sit past
+    # the VIC's badline window, so the hardware re-displays line 196's screen
+    # colors on the last three lines. Optimizing the four lines jointly makes
+    # the real display pixel-identical to the converter's intent.
+    tail = slice(196, 200)
+    tail_err = np.full(fli.COLS, np.inf)
+    tail_a = np.zeros(fli.COLS, dtype=np.uint8)
+    tail_b = np.zeros(fli.COLS, dtype=np.uint8)
+    for a in range(1, 16):
+        Da = np.minimum(base[tail], Ds[tail, :, :, a])
+        for b in range(a, 16):
+            err = np.minimum(Da, Ds[tail, :, :, b]).sum(axis=(0, 2))
+            better = err < tail_err
+            tail_err[better] = err[better]
+            tail_a[better] = a
+            tail_b[better] = b
+    for y in range(196, 200):
+        best_a[y] = tail_a
+        best_b[y] = tail_b
+
     screens = np.zeros((8, fli.ROWS, fli.COLS), dtype=np.uint8)
     sb = (best_a.astype(np.uint8) << 4) | best_b
     for y in range(H):

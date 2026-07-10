@@ -4,10 +4,14 @@
 ; at $0900 is overwritten by MAIN afterwards.
 ;   acme -I src -f cbm -o build/boot.prg src/boot.asm
 
-RESIDENT = $0200
-INSTALL  = $0900                ; from loadersymbols-c64.inc
-LOADRAW  = $0200
+!src "loader/loader/build/loadersymbols-c64.inc"  ; install / loadraw
+
+RESIDENT = $0200                ; where the resident blob is linked to run
 MAIN     = $0900
+INSTALL  = install
+LOADRAW  = loadraw
+!if LOADRAW != RESIDENT { !error "loader was rebuilt with a different RESIDENT address; update RESIDENT + memory map" }
+!if INSTALL != MAIN { !error "loader was rebuilt with a different INSTALL address; boot expects $0900" }
 
 * = $0801
         !byte $0b,$08,$e6,$07,$9e,$32,$30,$36,$31,$00,$00,$00  ; 2026 SYS2061

@@ -52,8 +52,18 @@ def fli_lines():
     for n in range(1, 200):
         d018 = 0x08 | ((n & 7) << 4)
         d011 = 0x38 | ((3 + n) & 7)
-        lines.append("        nop\n        nop\n        nop\n        nop\n"
-                     "        bit $ea\n"
+        if n == 1:
+            # line 0's badline is a normal (early) one whose halt window
+            # differs from the late-badline steady state; a 1-cycle shorter
+            # first block lands its $D011 write on the same cycle as every
+            # other line (else the FLI bug widens to 4 chars on line 1
+            # only). The line-1 halt re-syncs the chain for the rest.
+            filler = ("        nop\n        nop\n        nop\n"
+                      "        nop\n        nop\n")
+        else:
+            filler = ("        nop\n        nop\n        nop\n        nop\n"
+                      "        bit $ea\n")
+        lines.append(filler +
                      f"        lda #${d018:02x}\n"
                      f"        sta $d018\n"
                      f"        lda #${d011:02x}\n"

@@ -54,10 +54,15 @@ the asm on tools/cpu6502.py.
   by sweeping in VICE against a row+bank-sensitive test pattern (a uniform
   stripe pattern CANNOT detect row-counter bugs — it validates only d018).
 - Lines 197-199 (rasters 248-250, past the badline window) reuse line 196's
-  screen colors: bitmap and color-RAM stay correct, only the two screen-RAM
-  colors are stale. Invisible in photos; authentic FLI behavior.
-- Verified pixel-exact against preview.py in VICE (0 mismatches on lines
-  0-196; VICE renders a brightened palette — extract it empirically from a
+  screen colors: a hardware fact of FLI. The converter therefore optimizes
+  lines 196-199 jointly and emits one shared screen byte per cell for them,
+  so the display is pixel-identical to the converter's output anyway.
+- Line 1 (the first LATE badline) follows line 0's normal badline, whose
+  halt window differs by one cycle from steady state -- the generated code
+  makes the first unrolled block 1 cycle shorter, or the FLI bug widens to
+  4 chars on that line only. The per-line halts re-sync the chain after it.
+- Verified pixel-exact against preview.py in VICE (0 mismatches, all 200
+  lines; VICE renders a brightened palette — extract it empirically from a
   probe screenshot, don't trust the .vpl values for comparisons).
 
 ## Krill's loader v194 — integration rules (each one cost blood)
