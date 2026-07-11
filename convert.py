@@ -241,6 +241,64 @@ def dither_fs(lin, cand, strength, kernel=FS_KERNEL):
     return out
 
 
+def dither_dizzy(lin, cand, strength, seed=0xC64):
+    """Liam Appelbe's "dizzy" dithering (2026): visit pixels in random
+    order; push each pixel's error to its not-yet-visited neighbors,
+    orthogonals weighted 10x diagonals, normalized to what remains.
+    Blue-noise-like texture with no directional artifacts."""
+    import random as _random
+    pal_lin = c64color.palette_linear()
+    pal_lab = c64color.palette_oklab()
+    cl = pal_lin[cand]
+    cb = pal_lab[cand]
+    work = [row.tolist() for row in lin]
+    out = np.zeros((H, W), dtype=np.uint8)
+    visited = [[False] * W for _ in range(H)]
+    order = list(range(H * W))
+    _random.Random(seed).shuffle(order)
+    neigh = ((1, 0, 1.0), (-1, 0, 1.0), (0, 1, 1.0), (0, -1, 1.0),
+             (1, 1, 0.1), (1, -1, 0.1), (-1, 1, 0.1), (-1, -1, 0.1))
+    cbrt = math.cbrt
+    cw = c64color.CHROMA_WEIGHT
+    for idx in order:
+        y, x = divmod(idx, W)
+        r, g, b = work[y][x]
+        rr = min(max(r, -0.25), 1.25)
+        gg = min(max(g, -0.25), 1.25)
+        bb = min(max(b, -0.25), 1.25)
+        l_ = cbrt(0.4122214708 * rr + 0.5363325363 * gg + 0.0514459929 * bb)
+        m_ = cbrt(0.2119034982 * rr + 0.6806995451 * gg + 0.1073969566 * bb)
+        s_ = cbrt(0.0883024619 * rr + 0.2817188376 * gg + 0.6299787005 * bb)
+        L = 0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_
+        A = (1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_) * cw
+        B = (0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_) * cw
+        best, bi = 1e9, 0
+        for i in range(4):
+            pl, pa, pb = cb[y, x, i]
+            dd = (L - pl) ** 2 + (A - pa) ** 2 + (B - pb) ** 2
+            if dd < best:
+                best, bi = dd, i
+        out[y, x] = cand[y, x, bi]
+        visited[y][x] = True
+        er = rr - cl[y, x, bi, 0]
+        eg = gg - cl[y, x, bi, 1]
+        eb = bb - cl[y, x, bi, 2]
+        denom = 0.0
+        targets = []
+        for dx, dy, w in neigh:
+            xx, yy = x + dx, y + dy
+            if 0 <= xx < W and 0 <= yy < H and not visited[yy][xx]:
+                denom += w
+                targets.append((xx, yy, w))
+        if denom:
+            f = strength / denom
+            for xx, yy, w in targets:
+                px = work[yy][xx]
+                wf = w * f
+                px[0] += er * wf; px[1] += eg * wf; px[2] += eb * wf
+    return out
+
+
 def local_variance(lab_l):
     """3x3 local variance of OkLab lightness, for the hybrid dither mask."""
     p = np.pad(lab_l, 1, mode="edge")
@@ -264,6 +322,8 @@ def convert_image(photo, settings=None):
         chosen = dither_fs(lin, cand, s.strength)
     elif s.dither == "atkinson":
         chosen = dither_fs(lin, cand, s.strength, kernel=ATKINSON_KERNEL)
+    elif s.dither == "dizzy":
+        chosen = dither_dizzy(lin, cand, s.strength)
     elif s.dither == "bayer4":
         chosen = dither_ordered(lin, cand, BAYER4, s.strength)
     elif s.dither == "bayer8":
@@ -300,7 +360,7 @@ def main():
     ap.add_argument("photo", type=pathlib.Path)
     ap.add_argument("-o", "--out", type=pathlib.Path)
     ap.add_argument("--dither",
-                    choices=["fs", "atkinson", "bayer4", "bayer8", "hybrid"])
+                    choices=["fs", "atkinson", "dizzy", "bayer4", "bayer8", "hybrid"])
     ap.add_argument("--strength", type=float)
     ap.add_argument("--sat", type=float)
     ap.add_argument("--gamma", type=float)
