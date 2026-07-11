@@ -1,4 +1,4 @@
-# FLIpbook
+# DitherDeck 64
 
 *A dizzy FLI slideshow for the Commodore 64.*
 

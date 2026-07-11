@@ -174,7 +174,7 @@ def main():
 
     d64 = BUILD / "slideshow.d64"
     d64.unlink(missing_ok=True)
-    cmd = ["c1541", "-format", "flipbook,26", "d64", str(d64),
+    cmd = ["c1541", "-format", "ditherdeck 64,26", "d64", str(d64),
            "-write", str(BUILD / "boot.prg"), "slideshow",
            "-write", str(BUILD / "main.prg"), "main"]
     for i, z in enumerate(packed, 1):

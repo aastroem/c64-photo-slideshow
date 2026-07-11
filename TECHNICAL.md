@@ -1,4 +1,4 @@
-# FLIpbook — technical notes
+# DitherDeck 64 — technical notes
 
 Bootable d64: 2-11 photos as multicolor FLI (ZX0-crunched, Krill loadcompd),
 image-to-image dissolve transitions. Loads happen with the FLI display ON —
