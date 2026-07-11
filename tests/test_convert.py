@@ -19,7 +19,7 @@ def solid(rgb, size=(800, 600)):
 def test_solid_palette_color_converts_losslessly():
     img = convert.convert_image(solid(PALETTE_RGB[5]), convert.Settings(dither="fs"))
     idx = preview.indices(img)
-    vis = idx[:, 12:]  # skip FLI-bug columns
+    vis = idx[:, 12:12 + convert.VISW]  # skip FLI-bug cols + blank col 39
     assert set(np.unique(vis)) == {5}
 
 
@@ -30,9 +30,9 @@ def test_colorbars_lossless():
         bar[:, i * 50:(i + 1) * 50] = PALETTE_RGB[i]
     img = convert.convert_image(Image.fromarray(bar), convert.Settings(dither="bayer4"))
     idx = preview.indices(img)
-    # sample near the center of each bar (visible area maps to x 12..159)
+    # sample near the center of each bar (visible area maps to x 12..155)
     for i in range(16):
-        x = 12 + int((i + 0.5) / 16 * 148)
+        x = 12 + int((i + 0.5) / 16 * convert.VISW)
         col = idx[50:150, x]
         vals, counts = np.unique(col, return_counts=True)
         assert vals[np.argmax(counts)] == i, f"bar {i}"

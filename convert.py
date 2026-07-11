@@ -27,7 +27,11 @@ import c64color
 import fli
 
 W, H = 160, 200            # multicolor resolution
-VISW = fli.NVIS * 4        # 148 visible pixels (cols 3-39)
+# Photos map onto columns 3-38: cols 0-2 are the FLI bug (always black) and
+# col 39 is blanked too so the visible picture sits centered on screen
+# (with all 37 usable columns it would hang 12 hires pixels right of center).
+VIS_COLS = 36
+VISW = VIS_COLS * 4        # 144 visible pixels
 DISPLAY_ASPECT = (VISW * 2) / H   # mc pixels are 2 hires pixels wide
 
 BAYER4 = np.array([[0, 8, 2, 10], [12, 4, 14, 6],
@@ -249,7 +253,7 @@ def convert_image(photo, settings=None):
     s = settings or Settings()
     vis = prepare(photo, s)
     canvas = np.zeros((H, W, 3), dtype=np.uint8)
-    canvas[:, fli.VIS0 * 4:] = np.asarray(vis)
+    canvas[:, fli.VIS0 * 4:(fli.VIS0 + VIS_COLS) * 4] = np.asarray(vis)
 
     lin = c64color.srgb_to_linear(canvas)
     lab = c64color.linear_to_oklab(lin)
