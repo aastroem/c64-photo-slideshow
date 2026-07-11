@@ -150,7 +150,7 @@ def main():
     sh("acme", "-I", "src", "-I", "build/gen", "-f", "cbm",
        "-o", BUILD / "boot.prg", "src/boot.asm")
     sh("acme", "-I", "src", "-I", "build/gen", "-f", "cbm",
-       f"-DNUM_PICS={len(photos)}", "-o", BUILD / "main.prg", "src/main.asm")
+       f"-DNUM_PICS={len(sources)}", "-o", BUILD / "main.prg", "src/main.asm")
 
     main_prg = (BUILD / "main.prg").read_bytes()
     main_end = (main_prg[0] | main_prg[1] << 8) + len(main_prg) - 2

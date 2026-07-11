@@ -67,6 +67,9 @@ load_retry:
         ldy #>name
         jsr LOADCOMPD           ; ZX0-crunched pics, depacked on the fly
         bcc load_ok
+        sta $0401               ; loader error code (diagnostics)
+        lda picnum
+        sta $0402               ; failing slide index
         inc $d020               ; error: flash border, retry forever
         jmp load_retry
 load_ok:
