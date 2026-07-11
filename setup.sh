@@ -64,4 +64,4 @@ echo "ok: dali"
 
 echo
 echo "setup complete. next:  ./go.sh              (sample photos)"
-echo "                       ./go.sh my-photos/   (your own, 2-11 images)"
+echo "                       ./go.sh my-photos/   (your own, 2-18 images)"

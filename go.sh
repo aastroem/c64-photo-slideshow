@@ -1,7 +1,7 @@
 #!/bin/sh
 # Everything in one go: setup (if needed) -> photos -> disk image -> emulator.
 #   ./go.sh              use openly licensed sample photos
-#   ./go.sh my-photos/   use your own directory of 2-11 images
+#   ./go.sh my-photos/   use your own directory of 2-18 images
 set -e
 cd "$(dirname "$0")"
 

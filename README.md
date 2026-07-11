@@ -8,7 +8,7 @@ displayed by cycle-exact 6502 code.
 
 ![sample conversions](docs/img/samples.png)
 
-- 2–11 photos per disk (ZX0-compressed, loaded by Krill's fast loader)
+- 2–18 photos per disk (ZX0-compressed, loaded by Krill's fast loader)
 - slides melt into each other with a randomized cell dissolve — the next
   photo loads *underneath* the running FLI display, so there are no black
   screens, fades, or degraded frames, ever
@@ -22,7 +22,7 @@ displayed by cycle-exact 6502 code.
 
 ```bash
 ./go.sh                 # sample photos -> disk image -> VICE
-./go.sh my-photos/      # your own directory of 2-11 images
+./go.sh my-photos/      # your own directory of 2-18 images
 ```
 
 `go.sh` runs `setup.sh` on first use, which checks prerequisites and builds
@@ -70,7 +70,7 @@ Windows VICE — or write it straight to real hardware.
 
 ## Using your own photos
 
-Drop 2–11 JPG/PNG images into a directory and `./go.sh that-dir/`. Each
+Drop 2–18 JPG/PNG images into a directory and `./go.sh that-dir/`. Each
 photo gets a JSON sidecar remembering its conversion settings; tune any
 photo and rebuild:
 

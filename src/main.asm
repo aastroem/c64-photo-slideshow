@@ -137,6 +137,13 @@ fnames  ; 10 x 3 bytes "01".."10" (PETSCII digits == ASCII)
         !text "09" : !byte 0
         !text "10" : !byte 0
         !text "11" : !byte 0
+        !text "12" : !byte 0
+        !text "13" : !byte 0
+        !text "14" : !byte 0
+        !text "15" : !byte 0
+        !text "16" : !byte 0
+        !text "17" : !byte 0
+        !text "18" : !byte 0
 
 !src "fli_display.asm"
 !src "helpers.asm"
