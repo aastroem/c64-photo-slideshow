@@ -118,6 +118,40 @@ poll_skip:
 skip_prev  !byte 0
 skip_latch !byte 0
 
+
+; ---- called from the IRQ every frame: M key toggles music mute
+; (edge-detected; volume register only, so the tune keeps time silently)
+poll_mute:
+        lda #$ef                ; keyboard row 4 (M at bit 4)
+        sta $dc00
+        lda $dc01
+        pha
+        lda #$ff
+        sta $dc00
+        pla
+        and #$10
+        beq .mdown
+        lda #0
+        sta mute_prev
+        rts
+.mdown  lda mute_prev
+        bne .mheld
+        lda #1
+        sta mute_prev
+        lda muted
+        eor #1
+        sta muted
+        bne .moff
+        lda #$0f
+        sta $d418
+        rts
+.moff   lda #0
+        sta $d418
+.mheld  rts
+
+mute_prev !byte 0
+muted     !byte 0
+
 ; ---- carry set if joystick-2 fire or space is down
 check_skip:
         lda $dc00

@@ -31,6 +31,7 @@ irq_entry:
         ; ---- simple states: just music + frame counter
         jsr music_play
         jsr poll_skip
+        jsr poll_mute
         inc framecnt
         lda #$01
         sta $d019
@@ -83,6 +84,7 @@ fli_first:
         sta $d018
         jsr music_play
         jsr poll_skip
+        jsr poll_mute
         inc framecnt
         lda #<irq_entry
         sta $fffe
