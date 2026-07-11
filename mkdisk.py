@@ -110,12 +110,20 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--dir", type=pathlib.Path, default=HERE / "photos")
     ap.add_argument("--force", action="store_true", help="reconvert all photos")
+    ap.add_argument("--shuffle", action="store_true",
+                    help="random slide order (a pinned 01.* stays first)")
     args = ap.parse_args()
 
     BUILD.mkdir(exist_ok=True)
     sh(sys.executable, "gen_tables.py")
 
     photos = ordered_photos(args.dir)
+    if args.shuffle:
+        import random
+        pinned = [p for p in photos if p.stem == "01"]
+        rest = [p for p in photos if p.stem != "01"]
+        random.shuffle(rest)
+        photos = pinned + rest
     slides = build_slides(photos)
     if not 2 <= len(slides) <= MAX_PICS:
         raise SystemExit(f"need 2-{MAX_PICS} slides from {args.dir}, got {len(slides)}")
