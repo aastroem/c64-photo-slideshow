@@ -85,8 +85,9 @@ Two portrait photos are automatically combined into one side-by-side slide
 (in shot order, with a thin black divider, sized exactly to the FLI frame);
 an odd portrait out gets side bars as before.
 
-- `--dither fs|bayer4|bayer8|hybrid` — error diffusion (detail), ordered
-  (calm skies), or hybrid (default: ordered in flat areas, FS at edges)
+- `--dither fs|atkinson|bayer4|bayer8|hybrid` — error diffusion (detail),
+  Atkinson (the clean MacPaint look, great for flat areas), ordered (calm
+  skies), or hybrid (default: ordered in flat areas, FS at edges)
 - `--strength`, `--sat`, `--gamma` — dither amount, saturation, gamma
 - `--crop dx,dy` — shift the crop window (−1..1)
 - `--pad 0-15` — side-bar color for portrait photos (default 0, black)

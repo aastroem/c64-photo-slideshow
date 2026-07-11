@@ -192,8 +192,15 @@ def dither_ordered(lin, cand, matrix, strength):
     return dithered
 
 
-def dither_fs(lin, cand, strength):
-    """Serpentine Floyd-Steinberg in linear RGB, nearest match in OkLab."""
+FS_KERNEL = ((1, 0, 7 / 16), (-1, 1, 3 / 16), (0, 1, 5 / 16), (1, 1, 1 / 16))
+# Atkinson (MacPaint): six taps of 1/8 -- deliberately loses 1/4 of the
+# error, giving cleaner flats and punchier contrast than Floyd-Steinberg.
+ATKINSON_KERNEL = ((1, 0, 1 / 8), (2, 0, 1 / 8), (-1, 1, 1 / 8),
+                   (0, 1, 1 / 8), (1, 1, 1 / 8), (0, 2, 1 / 8))
+
+
+def dither_fs(lin, cand, strength, kernel=FS_KERNEL):
+    """Serpentine error diffusion in linear RGB, nearest match in OkLab."""
     pal_lin = c64color.palette_linear()
     pal_lab = c64color.palette_oklab()
     cl = pal_lin[cand]        # (200,160,4,3)
@@ -226,18 +233,11 @@ def dither_fs(lin, cand, strength):
             er = (rr - cl[y, x, bi, 0]) * strength
             eg = (gg - cl[y, x, bi, 1]) * strength
             eb = (bb - cl[y, x, bi, 2]) * strength
-            if 0 <= x + sgn < W:
-                px = work[y][x + sgn]
-                px[0] += er * 7 / 16; px[1] += eg * 7 / 16; px[2] += eb * 7 / 16
-            if y + 1 < H:
-                if 0 <= x - sgn < W:
-                    px = work[y + 1][x - sgn]
-                    px[0] += er * 3 / 16; px[1] += eg * 3 / 16; px[2] += eb * 3 / 16
-                px = work[y + 1][x]
-                px[0] += er * 5 / 16; px[1] += eg * 5 / 16; px[2] += eb * 5 / 16
-                if 0 <= x + sgn < W:
-                    px = work[y + 1][x + sgn]
-                    px[0] += er * 1 / 16; px[1] += eg * 1 / 16; px[2] += eb * 1 / 16
+            for dx, dy, w in kernel:
+                xx, yy = x + sgn * dx, y + dy
+                if 0 <= xx < W and yy < H:
+                    px = work[yy][xx]
+                    px[0] += er * w; px[1] += eg * w; px[2] += eb * w
     return out
 
 
@@ -262,6 +262,8 @@ def convert_image(photo, settings=None):
 
     if s.dither == "fs":
         chosen = dither_fs(lin, cand, s.strength)
+    elif s.dither == "atkinson":
+        chosen = dither_fs(lin, cand, s.strength, kernel=ATKINSON_KERNEL)
     elif s.dither == "bayer4":
         chosen = dither_ordered(lin, cand, BAYER4, s.strength)
     elif s.dither == "bayer8":
@@ -297,7 +299,8 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("photo", type=pathlib.Path)
     ap.add_argument("-o", "--out", type=pathlib.Path)
-    ap.add_argument("--dither", choices=["fs", "bayer4", "bayer8", "hybrid"])
+    ap.add_argument("--dither",
+                    choices=["fs", "atkinson", "bayer4", "bayer8", "hybrid"])
     ap.add_argument("--strength", type=float)
     ap.add_argument("--sat", type=float)
     ap.add_argument("--gamma", type=float)
