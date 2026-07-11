@@ -26,7 +26,9 @@ render your own with `make_demo_gif.py`).*
   (`SCANLINES=1 ./run_emulator.sh` for a CRT look)
 - portrait photos are auto-fitted with colored side bars
 - slide order: a file named `01.*` goes first, the rest follow EXIF capture time
-- runs on real hardware (PAL C64 + 1541, Ultimate 64, 1541UII) and in VICE
+- verified in VICE (cycle-exact `x64sc` + true drive emulation); built
+  for real PAL hardware (C64 + 1541, Ultimate 64, 1541UII) but not yet
+  tested on physical iron — see [Real hardware](#real-hardware)
 
 ## Quick start
 
