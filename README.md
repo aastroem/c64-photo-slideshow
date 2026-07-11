@@ -115,6 +115,8 @@ The full menu (`compare.py` renders any photo through all of them):
 | `bayer4`/`bayer8` | ordered matrices; perfectly stable regular patterning, calmest gradients, weakest fine detail |
 | `hybrid` | bayer8 in flat regions, FS at edges; a photo-oriented compromise |
 
+![dither mode comparison](docs/img/dithers.png)
+
 All modes quantize in OkLab against Pepto's measured palette, honor each
 sliver's 4-color constraint, and never dither pixels that already sit
 exactly on a palette color.
