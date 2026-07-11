@@ -153,12 +153,16 @@ def main():
         fli = BUILD / f"pic{i:02d}.fli"
         zx0 = BUILD / f"pic{i:02d}.zx0"
         sidecar = photo.with_name(photo.name + ".c64.json")
+        srcstamp = BUILD / f"pic{i:02d}.src"
         stale = (args.force or not fli.exists()
+                 or not srcstamp.exists()
+                 or srcstamp.read_text() != str(photo)   # different source!
                  or fli.stat().st_mtime < photo.stat().st_mtime
                  or (sidecar.exists() and fli.stat().st_mtime < sidecar.stat().st_mtime))
         if stale:
             print(f"converting {photo.name} -> {fli.name}")
             sh(sys.executable, "convert.py", photo, "-o", fli)
+            srcstamp.write_text(str(photo))
         if stale or not zx0.exists() or zx0.stat().st_mtime < fli.stat().st_mtime:
             sh(DALI, "-o", zx0, fli)
         packed.append(zx0)
