@@ -137,6 +137,13 @@ directly; ZoomFloppy + nibtools writes physical disks). Boot with
 `LOAD"*",8,1` then `RUN`. PAL machines only. SD2IEC does **not** work — the
 fast loader runs custom code in the 1541's drive CPU.
 
+> **Heads-up:** not yet verified on physical hardware. All verification so
+> far is against VICE's cycle-exact emulation (`x64sc` with true drive
+> emulation, which is what the loader and the FLI displayer were developed
+> against) — a real C64 + 1541 should behave identically, but until someone
+> reports back, consider real-iron status *expected to work, unconfirmed*.
+> If you run it on the real thing, please open an issue and tell us!
+
 ### FPGA cores / Analogue Pocket
 
 The build also emits **`build/slideshow.g64`** — the same disk as a
