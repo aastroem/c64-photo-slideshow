@@ -136,6 +136,14 @@ The full menu (`compare.py` renders any photo through all of them):
 
 ![dither mode comparison](docs/img/dithers.png)
 
+Dithering also pairs with the per-slide **display modes** (`--mode`): the
+default multicolor FLI trades resolution for color; standard hires trades
+color for resolution (sharper faces, crisper text); the mono variants turn
+the dither into the whole picture — 1-bit newsprint or a smoother grey
+ladder. All dizzy 0.5 below:
+
+![display mode comparison](docs/img/modes.png)
+
 All modes quantize in OkLab against Pepto's measured palette, honor each
 sliver's 4-color constraint, and never dither pixels that already sit
 exactly on a palette color.
