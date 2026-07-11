@@ -75,9 +75,17 @@ load_retry:
 load_ok:
         lda #0
         sta $d020
+        ldx picnum
+        lda slide_modes,x
+        sta cur_mode
         jsr unpack
         jsr dissolve_reset
-        jsr to_fli              ; old image back in full FLI...
+        lda cur_mode
+        beq .m_fli
+        jsr to_hires
+        jmp .m_done
+.m_fli  jsr to_fli              ; old image back in full FLI...
+.m_done
 
         ; ---- ...and the new one dissolves over it, cell by cell
 dissolve_in:
@@ -122,6 +130,7 @@ endshow:
         jmp mainloop
 
 picnum  !byte 0
+cur_mode !byte 0
 showcnt !byte 0, 0
 name    !byte 0, 0, 0           ; current filename, 0-terminated
 
@@ -152,5 +161,6 @@ fnames  ; 10 x 3 bytes "01".."10" (PETSCII digits == ASCII)
 !src "dissolve.asm"
 !src "order.asm"
 !src "note_table.asm"
+!src "slide_modes.asm"
 
         !if * >= $4000 { !error "MAIN overflows into VIC bank A" }

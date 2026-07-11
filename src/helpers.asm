@@ -7,6 +7,8 @@
 ; upper bits are the live IEC serial lines; writing them back wedges the bus.
 to_fli:
         sei
+        lda #$18                ; multicolor on for FLI
+        sta $d016
         lda #$18
         sta $d016               ; multicolor, 40 cols
         lda #0
@@ -19,6 +21,22 @@ to_fli:
         lda #RASTER_FLI
         sta $d012
         lda #STATE_FLI
+        sta state
+        cli
+        rts
+
+; ---- standard hires bitmap (screen 0 colors, bitmap $6000), no FLI IRQ
+to_hires:
+        sei
+        lda #$08                ; multicolor off
+        sta $d016
+        lda #$3b                ; bitmap mode
+        sta $d011
+        lda #$08
+        sta $d018
+        lda #RASTER_SIMPLE
+        sta $d012
+        lda #STATE_MC           ; "simple" IRQ personality
         sta state
         cli
         rts

@@ -58,6 +58,7 @@ class Settings:
     gamma: float = 1.0
     crop: str = "0,0"       # fractional offset of the crop window, -1..1
     pad: int = 0            # C64 color for the side bars on portrait photos
+    mode: str = "fli"       # fli | hires | hires-mono | hires-greys
 
 
 def sidecar_path(photo):
@@ -443,22 +444,30 @@ def main():
     ap.add_argument("--sat", type=float)
     ap.add_argument("--gamma", type=float)
     ap.add_argument("--crop")
+    ap.add_argument("--mode", choices=["fli", "hires", "hires-mono",
+                                       "hires-greys"])
     args = ap.parse_args()
 
     s = load_sidecar(args.photo)
-    for k in ("dither", "strength", "sat", "gamma", "crop"):
+    for k in ("dither", "strength", "sat", "gamma", "crop", "mode"):
         v = getattr(args, k)
         if v is not None:
             setattr(s, k, v)
     save_sidecar(args.photo, s)
 
-    img = convert_image(Image.open(args.photo), s)
     out = args.out or args.photo.with_suffix(".fli")
-    out.write_bytes(img.pack())
-
-    import preview
     pv = out.with_name(out.stem + "_preview.png")
-    preview.render(img).resize((640, 400), Image.NEAREST).save(pv)
+    if s.mode == "fli":
+        img = convert_image(Image.open(args.photo), s)
+        out.write_bytes(img.pack())
+        import preview
+        preview.render(img).resize((640, 400), Image.NEAREST).save(pv)
+    else:
+        import modes
+        img, outidx = modes.convert_hires(Image.open(args.photo), s,
+                                          variant=s.mode)
+        out.write_bytes(img.pack())
+        modes.render_preview(outidx).resize((640, 400), Image.NEAREST).save(pv)
     print(f"wrote {out} and {pv}  ({s})")
 
 

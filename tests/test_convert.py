@@ -86,3 +86,13 @@ def test_sidecar_roundtrip(tmp_path):
     loaded = convert.load_sidecar(p)
     assert loaded == s
     assert json.loads((tmp_path / "x.jpg.c64.json").read_text())["dither"] == "bayer8"
+
+
+def test_hires_mode_packs_flip_container():
+    import modes
+    img, out = modes.convert_hires(solid(PALETTE_RGB[5]), convert.Settings())
+    # all 8 screen banks identical (display reads bank 0; dup compresses away)
+    for bank in range(1, 8):
+        assert (img.screens[bank] == img.screens[0]).all()
+    assert len(img.pack()) == 15727
+    assert out.shape == (200, 320)

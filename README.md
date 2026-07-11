@@ -104,6 +104,11 @@ an odd portrait out gets side bars as before.
 - `--strength`, `--sat`, `--gamma` — dither amount, saturation, gamma
 - `--crop dx,dy` — shift the crop window (−1..1)
 - `--pad 0-15` — side-bar color for portrait photos (default 0, black)
+- `--mode fli|hires|hires-mono|hires-greys` — per-slide display mode:
+  multicolor FLI (default, best for photos), standard hires bitmap at
+  320×200 with 2 colors per 8×8 cell (crisper faces and line art), or the
+  hires mono/grey-ladder looks (newsprint engraving). Modes mix freely
+  within one deck — the C64 switches display per slide.
 
 ## Dithering
 

@@ -163,6 +163,15 @@ def main():
             sh(DALI, "-o", zx0, fli)
         packed.append(zx0)
 
+    # per-slide display mode table for the C64 program
+    import convert as _conv
+    MODE_IDS = {"fli": 0, "hires": 1, "hires-mono": 1, "hires-greys": 1}
+    mode_ids = [MODE_IDS.get(_conv.load_sidecar(src).mode, 0)
+                for src in sources]
+    (BUILD / "gen" / "slide_modes.asm").write_text(
+        "slide_modes\n        !byte " +
+        ",".join(str(v) for v in mode_ids) + "\n")
+
     sh("acme", "-I", "src", "-I", "build/gen", "-f", "cbm",
        "-o", BUILD / "boot.prg", "src/boot.asm")
     sh("acme", "-I", "src", "-I", "build/gen", "-f", "cbm",
