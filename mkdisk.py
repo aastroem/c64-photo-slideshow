@@ -17,12 +17,18 @@ import sys
 
 from PIL import Image
 
+try:                            # optional: modern-format decoders
+    import pillow_avif  # noqa: F401
+    import pillow_jxl   # noqa: F401
+except ImportError:
+    pass
+
 HERE = pathlib.Path(__file__).resolve().parent
 BUILD = HERE / "build"
 DALI = HERE / "src/loader/loader/tools/dali/dali"
 MAX_BLOCKS = 664
 MAX_PICS = 18   # filename table size; real limit is disk blocks (asserted below)
-EXTS = (".jpg", ".jpeg", ".png", ".heic")
+EXTS = (".jpg", ".jpeg", ".png", ".heic", ".webp", ".avif", ".jxl")
 
 
 def sh(*args):

@@ -21,6 +21,12 @@ import sys
 import numpy as np
 from PIL import Image, ImageEnhance, ImageFilter, ImageOps
 
+try:                            # optional: modern-format decoders
+    import pillow_avif  # noqa: F401
+    import pillow_jxl   # noqa: F401
+except ImportError:
+    pass
+
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
 import c64color

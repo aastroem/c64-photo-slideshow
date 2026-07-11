@@ -51,6 +51,11 @@ else
     echo "ok: Pillow, numpy, pytest"
 fi
 
+# optional decoders for webp/avif/jxl photos (best effort)
+python3 -m pip install --quiet pillow-avif-plugin pillow-jxl-plugin 2>/dev/null \
+    || python3 -m pip install --quiet --user --break-system-packages pillow-avif-plugin pillow-jxl-plugin 2>/dev/null \
+    || echo "note: avif/jxl photo support skipped (jpg/png/webp still fine)"
+
 echo "== building dali (ZX0 cruncher, vendored with Krill's loader)"
 DALI=src/loader/loader/tools/dali
 if [ ! -x $DALI/dali ]; then

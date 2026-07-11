@@ -80,7 +80,7 @@ Windows VICE — or write it straight to real hardware.
 
 ## Using your own photos
 
-Drop 2–18 JPG/PNG images into a directory and `./go.sh that-dir/`. Each
+Drop 2–18 images (JPG/PNG/WebP — plus AVIF/JXL/HEIC with the optional decoders `setup.sh` installs) into a directory and `./go.sh that-dir/`. Each
 photo gets a JSON sidecar remembering its conversion settings; tune any
 photo and rebuild:
 
