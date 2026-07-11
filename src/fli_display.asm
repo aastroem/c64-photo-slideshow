@@ -30,6 +30,7 @@ irq_entry:
         beq .fli
         ; ---- simple states: just music + frame counter
         jsr music_play
+        jsr poll_skip
         inc framecnt
         lda #$01
         sta $d019
@@ -81,6 +82,7 @@ fli_first:
         lda #$08
         sta $d018
         jsr music_play
+        jsr poll_skip
         inc framecnt
         lda #<irq_entry
         sta $fffe

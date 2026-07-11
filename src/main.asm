@@ -91,20 +91,20 @@ dissolve_in:
         cmp #<1000
         bcc dissolve_in
 
-        ; ---- show; fire/space skips (wait for release first)
-release:
-        jsr wait_frame
-        jsr check_skip
-        bcs release
+        ; ---- show; a latched fire/space press (from any moment since the
+        ; last consume) skips ahead
         lda #<SHOW_FRAMES
         sta showcnt
         lda #>SHOW_FRAMES
         sta showcnt+1
 show:
         jsr wait_frame
-        jsr check_skip
-        bcs endshow
-        lda showcnt
+        lda skip_latch
+        beq +
+        lda #0
+        sta skip_latch
+        jmp endshow
++       lda showcnt
         bne +
         dec showcnt+1
 +       dec showcnt

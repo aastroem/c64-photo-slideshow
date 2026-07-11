@@ -87,6 +87,25 @@ clear_banka:
         bne .cd
         rts
 
+; ---- called from the IRQ every frame: latch NEW fire/space presses
+; (edge-detected, so holding the button skips once, and presses during
+; loads/dissolves are remembered until the show phase consumes them)
+poll_skip:
+        jsr check_skip
+        bcs .down
+        lda #0
+        sta skip_prev
+        rts
+.down   lda skip_prev
+        bne .held
+        lda #1
+        sta skip_prev
+        sta skip_latch
+.held   rts
+
+skip_prev  !byte 0
+skip_latch !byte 0
+
 ; ---- carry set if joystick-2 fire or space is down
 check_skip:
         lda $dc00
