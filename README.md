@@ -4,7 +4,16 @@ Turn your photos into a bootable **Commodore 64 slideshow** on a real
 1541-compatible disk. Photos are converted to multicolor **FLI** (the C64
 demoscene's high-color bitmap mode) with perceptual color matching and
 dithering, packed onto a `.d64` with music and dissolve transitions, and
-displayed by cycle-exact 6502 code.
+displayed by cycle-exact 6502 code. The quality trick is the pairing of
+**FLI** — which multiplies the C64's per-area color freedom eightfold — with
+modern **dizzy dithering**; together they produce images that look far
+better than a 1982 machine has any right to show.
+
+![slideshow demo](docs/img/demo.gif)
+
+*A real run: converted slides melting into each other with the actual
+dissolve pattern the C64 computes (static holds shortened for the GIF —
+render your own with `make_demo_gif.py`).*
 
 ![sample conversions](docs/img/samples.png)
 
@@ -145,14 +154,35 @@ easy to replace with your own tune.
 
 ## How it works
 
-The short version: photos are matched against the measured C64 palette in
-OkLab color space, attributes are optimized per FLI color slot, and the
-result is packed into a trimmed format that a 6502 routine unpacks in place.
-On the C64, a stable-raster IRQ forces a *late* badline on every scanline
-(the trick that makes FLI work — and causes its famous unusable left
-columns), while Krill's loader streams the next picture in underneath.
-The gory details, including several hard-won hardware facts, are in
-[TECHNICAL.md](TECHNICAL.md).
+### What is FLI, and why isn't the picture perfectly centered?
+
+A stock C64 multicolor bitmap allows 4 colors per 4×8-pixel cell. **FLI**
+(Flexible Line Interpretation, a 1989 demoscene discovery) forces the VIC-II
+video chip to re-fetch its color data on *every scanline* — the display
+routine rewrites two chip registers per line with cycle-exact timing — so
+each 4×1-pixel sliver gets its own 4 colors: eight times the vertical color
+resolution. That's what makes photographic material possible at all.
+
+It comes with a famous tax: during those forced re-fetches the chip has no
+time to load valid color data for the **first three character columns** of
+each line, so they display garbage — the "FLI bug". Every FLI picture ever
+made has ~24 dead pixels on the left, and ours paints them black so they
+merge into the border. Because 24 black pixels on the left alone would push
+the visible picture 12 pixels right of center, the converter also blanks
+the rightmost column: the 288-pixel picture then sits within 4 pixels of
+true center — close enough that the eye reads it as centered. So the black
+stripes aren't padding or a bug in this tool: they're the VIC-II's toll,
+arranged as symmetrically as the hardware allows.
+
+### The rest of the pipeline
+
+Photos are matched against the measured C64 palette in OkLab color space,
+attributes are optimized per FLI color slot, and the result is packed into
+a trimmed format that a 6502 routine unpacks in place. On the C64, a
+stable-raster IRQ forces a *late* badline on every scanline (the trick that
+makes FLI's row counter work), while Krill's loader streams the next
+picture in underneath the live display. The gory details, including several
+hard-won hardware facts, are in [TECHNICAL.md](TECHNICAL.md).
 
 ## Credits
 
