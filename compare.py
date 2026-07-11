@@ -29,8 +29,10 @@ VARIANTS = [
     ("fs s=0.85", {"dither": "fs"}),
     ("fs s=0.5", {"dither": "fs", "strength": 0.5}),
     ("fs s=1.2", {"dither": "fs", "strength": 1.2}),
+    ("atkinson s=0.5", {"dither": "atkinson", "strength": 0.5}),
     ("atkinson s=0.85", {"dither": "atkinson"}),
     ("atkinson s=1.2", {"dither": "atkinson", "strength": 1.2}),
+    ("dizzy s=0.5", {"dither": "dizzy", "strength": 0.5}),
     ("dizzy s=0.85", {"dither": "dizzy"}),
     ("dizzy s=1.2", {"dither": "dizzy", "strength": 1.2}),
     ("bayer4 s=0.85", {"dither": "bayer4"}),
@@ -76,7 +78,12 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("photos", nargs="*", type=pathlib.Path)
     ap.add_argument("--dir", type=pathlib.Path)
+    ap.add_argument("--only", help="comma-separated label prefixes, e.g. atkinson,dizzy")
     args = ap.parse_args()
+    if args.only:
+        keys = [k.strip() for k in args.only.split(",")]
+        global VARIANTS
+        VARIANTS = [v for v in VARIANTS if any(v[0].startswith(k) for k in keys)]
     photos = list(args.photos)
     if args.dir:
         photos += sorted(p for p in args.dir.iterdir()
