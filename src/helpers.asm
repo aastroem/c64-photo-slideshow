@@ -95,13 +95,25 @@ poll_skip:
         bcs .down
         lda #0
         sta skip_prev
-        rts
+        beq .ack
 .down   lda skip_prev
-        bne .held
+        bne .ack
         lda #1
         sta skip_prev
         sta skip_latch
-.held   rts
+        lda #8                  ; acknowledge: grey border blip, 8 frames
+        sta .ackn
+.ack    lda .ackn
+        beq .done
+        dec .ackn
+        bne .grey
+        lda #0                  ; blip over: back to black
+        sta $d020
+        rts
+.grey   lda #12
+        sta $d020
+.done   rts
+.ackn   !byte 0
 
 skip_prev  !byte 0
 skip_latch !byte 0
