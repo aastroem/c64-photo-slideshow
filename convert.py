@@ -305,6 +305,76 @@ def dither_dizzy(lin, cand, strength, seed=0xC64):
     return out
 
 
+def _hilbert_order(w, h):
+    """Pixel indices along a Hilbert curve covering the image bounds."""
+    n = 1
+    while n < max(w, h):
+        n <<= 1
+    out = []
+    for d in range(n * n):
+        rx = ry = 0
+        x = y = 0
+        t = d
+        s = 1
+        while s < n:
+            rx = 1 & (t // 2)
+            ry = 1 & (t ^ rx)
+            if ry == 0:
+                if rx == 1:
+                    x, y = s - 1 - x, s - 1 - y
+                x, y = y, x
+            x += s * rx
+            y += s * ry
+            t //= 4
+            s <<= 1
+        if x < w and y < h:
+            out.append((x, y))
+    return out
+
+
+def dither_riemersma(lin, cand, strength, q=16, r=16.0):
+    """Riemersma dithering (Thiadmer Riemersma, compuphase.com/riemer.htm):
+    error diffusion along a Hilbert curve with an exponentially weighted
+    history of the last q quantization errors (oldest:newest = 1:r)."""
+    pal_lin = c64color.palette_linear()
+    pal_lab = c64color.palette_oklab()
+    cl = pal_lin[cand]
+    cb = pal_lab[cand]
+    out = np.zeros((H, W), dtype=np.uint8)
+    b = math.exp(math.log(r) / (q - 1))
+    weights = [(1.0 / r) * (b ** i) for i in range(q)]
+    hist = [[0.0, 0.0, 0.0] for _ in range(q)]     # oldest first
+    cbrt = math.cbrt
+    cw = c64color.CHROMA_WEIGHT
+    src = lin
+    for x, y in _hilbert_order(W, H):
+        acc = [0.0, 0.0, 0.0]
+        for wgt, e in zip(weights, hist):
+            acc[0] += e[0] * wgt; acc[1] += e[1] * wgt; acc[2] += e[2] * wgt
+        r0, g0, b0 = src[y, x]
+        rr = min(max(r0 + acc[0] * strength, -0.25), 1.25)
+        gg = min(max(g0 + acc[1] * strength, -0.25), 1.25)
+        bb = min(max(b0 + acc[2] * strength, -0.25), 1.25)
+        l_ = cbrt(0.4122214708 * rr + 0.5363325363 * gg + 0.0514459929 * bb)
+        m_ = cbrt(0.2119034982 * rr + 0.6806995451 * gg + 0.1073969566 * bb)
+        s_ = cbrt(0.0883024619 * rr + 0.2817188376 * gg + 0.6299787005 * bb)
+        L = 0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_
+        A = (1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_) * cw
+        B = (0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_) * cw
+        best, bi = 1e9, 0
+        for i in range(4):
+            pl, pa, pb = cb[y, x, i]
+            dd = (L - pl) ** 2 + (A - pa) ** 2 + (B - pb) ** 2
+            if dd < best:
+                best, bi = dd, i
+        out[y, x] = cand[y, x, bi]
+        hist.pop(0)                                # source - quantized error
+        hist.append([r0 - cl[y, x, bi, 0],
+                     g0 - cl[y, x, bi, 1],
+                     b0 - cl[y, x, bi, 2]])
+    return out
+
+
 def local_variance(lab_l):
     """3x3 local variance of OkLab lightness, for the hybrid dither mask."""
     p = np.pad(lab_l, 1, mode="edge")
@@ -330,6 +400,8 @@ def convert_image(photo, settings=None):
         chosen = dither_fs(lin, cand, s.strength, kernel=ATKINSON_KERNEL)
     elif s.dither == "dizzy":
         chosen = dither_dizzy(lin, cand, s.strength)
+    elif s.dither == "riemersma":
+        chosen = dither_riemersma(lin, cand, s.strength)
     elif s.dither == "bayer4":
         chosen = dither_ordered(lin, cand, BAYER4, s.strength)
     elif s.dither == "bayer8":
@@ -366,7 +438,7 @@ def main():
     ap.add_argument("photo", type=pathlib.Path)
     ap.add_argument("-o", "--out", type=pathlib.Path)
     ap.add_argument("--dither",
-                    choices=["fs", "atkinson", "dizzy", "bayer4", "bayer8", "hybrid"])
+                    choices=["fs", "atkinson", "dizzy", "riemersma", "bayer4", "bayer8", "hybrid"])
     ap.add_argument("--strength", type=float)
     ap.add_argument("--sat", type=float)
     ap.add_argument("--gamma", type=float)

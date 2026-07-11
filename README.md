@@ -97,7 +97,7 @@ Two portrait photos are automatically combined into one side-by-side slide
 (in shot order, with a thin black divider, sized exactly to the FLI frame);
 an odd portrait out gets side bars as before.
 
-- `--dither dizzy|fs|atkinson|bayer4|bayer8|hybrid` — see
+- `--dither dizzy|fs|atkinson|riemersma|bayer4|bayer8|hybrid` — see
   [Dithering](#dithering) below (default: `dizzy` at strength 0.5)
 - `--strength`, `--sat`, `--gamma` — dither amount, saturation, gamma
 - `--crop dx,dy` — shift the crop window (−1..1)
@@ -123,6 +123,7 @@ The full menu (`compare.py` renders any photo through all of them):
 | `dizzy` | random-order diffusion; even, direction-free blue-noise grain — the default |
 | `fs` | Floyd–Steinberg; maximum detail retention, slight directional texture |
 | `atkinson` | Bill Atkinson's MacPaint kernel; deliberately discards ¼ of the error for punchy contrast and very clean highlights |
+| `riemersma` | error diffusion along a Hilbert curve ([Riemersma](https://www.compuphase.com/riemer.htm)); organic, clustered grain that follows the curve's wandering path |
 | `bayer4`/`bayer8` | ordered matrices; perfectly stable regular patterning, calmest gradients, weakest fine detail |
 | `hybrid` | bayer8 in flat regions, FS at edges; a photo-oriented compromise |
 
@@ -205,7 +206,9 @@ hard-won hardware facts, are in [TECHNICAL.md](TECHNICAL.md).
   [pepto.de/projects/colorvic](https://www.pepto.de/projects/colorvic/))
 - **ACME** cross-assembler and **VICE** emulator teams
 - **Dizzy dithering** algorithm by
-  [Liam Appelbe](https://liamappelbe.medium.com/dizzy-dithering-2ae76dbceba1)
+  [Liam Appelbe](https://liamappelbe.medium.com/dizzy-dithering-2ae76dbceba1);
+  **Riemersma dithering** by
+  [Thiadmer Riemersma](https://www.compuphase.com/riemer.htm)
 - Sample photos served by [picsum.photos](https://picsum.photos)
   (Unsplash-licensed images)
 - Built by [aastroem](https://github.com/aastroem) with
