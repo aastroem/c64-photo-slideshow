@@ -90,8 +90,8 @@ def composite_pair(a, b, out):
     from PIL import ImageOps
     H_SRC = 2000                             # working height (square pixels)
     scale = H_SRC // 200                     # source px per C64 line
-    half_w = 71 * 2 * scale // 2             # 71 mc px in square pixels
-    gap_w = 2 * 2 * scale // 2               # 2 mc px divider
+    half_w = 71 * 2 * scale                  # 71 mc px = 142 hires px wide
+    gap_w = 2 * 2 * scale                    # 2 mc px divider
     halves = []
     for p in (a, b):
         im = ImageOps.exif_transpose(Image.open(p).convert("RGB"))
