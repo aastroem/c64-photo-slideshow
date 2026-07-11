@@ -46,8 +46,8 @@ BAYER8 = np.array([
 
 @dataclasses.dataclass
 class Settings:
-    dither: str = "hybrid"
-    strength: float = 0.85
+    dither: str = "dizzy"
+    strength: float = 0.5
     sat: float = 1.1
     gamma: float = 1.0
     crop: str = "0,0"       # fractional offset of the crop window, -1..1

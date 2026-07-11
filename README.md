@@ -86,12 +86,38 @@ Two portrait photos are automatically combined into one side-by-side slide
 (in shot order, with a thin black divider, sized exactly to the FLI frame);
 an odd portrait out gets side bars as before.
 
-- `--dither fs|atkinson|dizzy|bayer4|bayer8|hybrid` — error diffusion
-  (detail), Atkinson (clean MacPaint look), dizzy (random-order diffusion,
-  blue-noise grain), ordered (calm skies), or hybrid (default)
+- `--dither dizzy|fs|atkinson|bayer4|bayer8|hybrid` — see
+  [Dithering](#dithering) below (default: `dizzy` at strength 0.5)
 - `--strength`, `--sat`, `--gamma` — dither amount, saturation, gamma
 - `--crop dx,dy` — shift the crop window (−1..1)
 - `--pad 0-15` — side-bar color for portrait photos (default 0, black)
+
+## Dithering
+
+A C64 sliver offers only four colors, so dithering carries most of the
+perceived color depth. The default is **dizzy dithering**
+([Liam Appelbe, 2026](https://liamappelbe.medium.com/dizzy-dithering-2ae76dbceba1))
+at strength 0.5 — a modern error-diffusion algorithm that visits pixels in
+*random order* and hands each pixel's quantization error to whichever
+neighbors haven't been processed yet. Because there is no scan direction,
+there are none of the directional "worm" artifacts of classic raster-order
+diffusion: the grain comes out isotropic and blue-noise-like — organic,
+even texture that flatters chunky C64 pixels (and CRTs), keeps flat areas
+like skies calm at low strength, and compresses well on disk.
+
+The full menu (`compare.py` renders any photo through all of them):
+
+| mode | character |
+|---|---|
+| `dizzy` | random-order diffusion; even, direction-free blue-noise grain — the default |
+| `fs` | Floyd–Steinberg; maximum detail retention, slight directional texture |
+| `atkinson` | Bill Atkinson's MacPaint kernel; deliberately discards ¼ of the error for punchy contrast and very clean highlights |
+| `bayer4`/`bayer8` | ordered matrices; perfectly stable regular patterning, calmest gradients, weakest fine detail |
+| `hybrid` | bayer8 in flat regions, FS at edges; a photo-oriented compromise |
+
+All modes quantize in OkLab against Pepto's measured palette, honor each
+sliver's 4-color constraint, and never dither pixels that already sit
+exactly on a palette color.
 
 ## Real hardware
 
@@ -137,6 +163,8 @@ The gory details, including several hard-won hardware facts, are in
 - **Pepto's** measured VIC-II palette (Philip Timmermann,
   [pepto.de/projects/colorvic](https://www.pepto.de/projects/colorvic/))
 - **ACME** cross-assembler and **VICE** emulator teams
+- **Dizzy dithering** algorithm by
+  [Liam Appelbe](https://liamappelbe.medium.com/dizzy-dithering-2ae76dbceba1)
 - Sample photos served by [picsum.photos](https://picsum.photos)
   (Unsplash-licensed images)
 - Built by [aastroem](https://github.com/aastroem) with
