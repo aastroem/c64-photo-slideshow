@@ -43,3 +43,12 @@ def test_fade_table_reaches_black():
                 assert L[nxt] < L[cur], f"luminance must drop: {cur}->{nxt}"
             cur = nxt
         assert cur == 0, f"color {c} did not fade to black in 8 steps"
+
+
+def test_charset_loads_from_vice():
+    import charset
+    g = charset.glyphs()
+    assert g.shape == (256, 8, 8)
+    assert 0 < g.sum() < 256 * 64          # neither empty nor solid
+    # second half of the bank is the inverse of the first
+    assert (g[128:] == ~g[:128]).all()
