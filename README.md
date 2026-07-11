@@ -75,10 +75,15 @@ photo gets a JSON sidecar remembering its conversion settings; tune any
 photo and rebuild:
 
 ```bash
+python3 compare.py my-photos/beach.jpg    # HTML gallery of all option combos
 python3 convert.py my-photos/beach.jpg --dither fs --strength 0.7 --sat 1.2 --crop 0,-0.4
 python3 preview.py build/pic03.fli        # judge quality without a C64
 python3 mkdisk.py --dir my-photos/        # rebuilds only what changed
 ```
+
+Two portrait photos are automatically combined into one side-by-side slide
+(in shot order, with a thin black divider, sized exactly to the FLI frame);
+an odd portrait out gets side bars as before.
 
 - `--dither fs|bayer4|bayer8|hybrid` — error diffusion (detail), ordered
   (calm skies), or hybrid (default: ordered in flat areas, FS at edges)

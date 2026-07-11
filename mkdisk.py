@@ -52,6 +52,60 @@ def ordered_photos(d):
     return pinned + rest
 
 
+def is_portrait(p):
+    from PIL import ImageOps
+    im = ImageOps.exif_transpose(Image.open(p))
+    return im.width / im.height < 1.1
+
+
+def build_slides(photos):
+    """Pair portraits (in shot order) into side-by-side slides.
+
+    Landscapes and a pinned 01.* stay solo; an odd portrait out remains a
+    single padded slide. A pair takes its position from its first photo.
+    """
+    portraits = [p for p in photos if p.stem != "01" and is_portrait(p)]
+    firsts = {portraits[i]: portraits[i + 1]
+              for i in range(0, len(portraits) - 1, 2)}
+    seconds = set(firsts.values())
+    slides = []
+    for p in photos:
+        if p in seconds:
+            continue
+        slides.append((p, firsts[p]) if p in firsts else (p,))
+    return slides
+
+
+def composite_pair(a, b, out):
+    """Two portraits -> one landscape slide, sized to the FLI display.
+
+    The visible FLI frame is 144 multicolor pixels (each 2 hires px wide) by
+    200 lines. Each photo gets exactly 71 mc px, split by a 2 mc px black
+    divider (71+2+71 = 144), so the converter crops nothing afterwards and
+    the divider lands on whole C64 pixels.
+    """
+    if out.exists() and out.stat().st_mtime > max(a.stat().st_mtime,
+                                                  b.stat().st_mtime):
+        return
+    from PIL import ImageOps
+    H_SRC = 2000                             # working height (square pixels)
+    scale = H_SRC // 200                     # source px per C64 line
+    half_w = 71 * 2 * scale // 2             # 71 mc px in square pixels
+    gap_w = 2 * 2 * scale // 2               # 2 mc px divider
+    halves = []
+    for p in (a, b):
+        im = ImageOps.exif_transpose(Image.open(p).convert("RGB"))
+        cw = min(im.width, round(im.height * half_w / H_SRC))
+        ch = min(im.height, round(im.width * H_SRC / half_w))
+        x0, y0 = (im.width - cw) // 2, (im.height - ch) // 2
+        halves.append(im.crop((x0, y0, x0 + cw, y0 + ch))
+                        .resize((half_w, H_SRC), Image.LANCZOS))
+    canvas = Image.new("RGB", (half_w * 2 + gap_w, H_SRC), (0, 0, 0))
+    canvas.paste(halves[0], (0, 0))
+    canvas.paste(halves[1], (half_w + gap_w, 0))
+    canvas.save(out, quality=95)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--dir", type=pathlib.Path, default=HERE / "photos")
@@ -62,14 +116,24 @@ def main():
     sh(sys.executable, "gen_tables.py")
 
     photos = ordered_photos(args.dir)
-    if not 2 <= len(photos) <= MAX_PICS:
-        raise SystemExit(f"need 2-{MAX_PICS} photos in {args.dir}, found {len(photos)}")
+    slides = build_slides(photos)
+    if not 2 <= len(slides) <= MAX_PICS:
+        raise SystemExit(f"need 2-{MAX_PICS} slides from {args.dir}, got {len(slides)}")
     print("slide order:")
-    for i, p in enumerate(photos, 1):
-        print(f"  {i:2d}. {p.name}  ({shot_time(p):%Y-%m-%d %H:%M})")
+    sources = []
+    for i, slide in enumerate(slides, 1):
+        if len(slide) == 2:
+            out = BUILD / f"pair{i:02d}.jpg"
+            composite_pair(slide[0], slide[1], out)
+            sources.append(out)
+            print(f"  {i:2d}. {slide[0].name} + {slide[1].name}  "
+                  f"({shot_time(slide[0]):%Y-%m-%d %H:%M})")
+        else:
+            sources.append(slide[0])
+            print(f"  {i:2d}. {slide[0].name}  ({shot_time(slide[0]):%Y-%m-%d %H:%M})")
 
     packed = []
-    for i, photo in enumerate(photos, 1):
+    for i, photo in enumerate(sources, 1):
         fli = BUILD / f"pic{i:02d}.fli"
         zx0 = BUILD / f"pic{i:02d}.zx0"
         sidecar = photo.with_name(photo.name + ".c64.json")
