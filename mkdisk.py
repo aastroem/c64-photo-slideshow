@@ -131,7 +131,9 @@ def main():
     sources = []
     for i, slide in enumerate(slides, 1):
         if len(slide) == 2:
-            out = BUILD / f"pair{i:02d}.jpg"
+            tag = "_".join("".join(c for c in s.stem if c.isalnum())[:16]
+                           for s in slide)
+            out = BUILD / f"pair_{tag}.jpg"
             composite_pair(slide[0], slide[1], out)
             sources.append(out)
             print(f"  {i:2d}. {slide[0].name} + {slide[1].name}  "
