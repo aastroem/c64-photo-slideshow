@@ -164,6 +164,45 @@ def convert_hires(photo, s, variant="hires"):
     return img, out
 
 
+def convert_afli(photo, s):
+    """AFLI: hires bitmap with a fresh 2-color pair per 8x1 line strip.
+    Packs into the FLIP container exactly like FLI (screen bank y%8 holds
+    line y's pairs); the C64 displays it with the FLI IRQ, multicolor off."""
+    canvas = _prepare(photo, s)
+    lin = c64color.srgb_to_linear(canvas)
+    lab = c64color.linear_to_oklab(lin)
+    D = ((lab[:, :, None, :] - _pal_ok[None, None, :, :])**2).sum(-1)
+    near = D.argmin(-1)
+    pairs = np.zeros((H, 40, 2), dtype=int)
+    for y in range(H):
+        for c in range(40):
+            strip = near[y, c*8:c*8+8]
+            pairs[y, c] = np.bincount(strip, minlength=16).argsort()[-2:]
+    pairs[:, :VIS0] = 0
+    pairs[:, VIS0 + VIS_COLS:] = 0
+    out = _dizzy(lin, lambda y, x: pairs[y, x//8], s.strength)
+    img = fli.FliImage()
+    for y in range(H):
+        r, ln = y // 8, y % 8
+        for c in range(40):
+            hi, lo = int(pairs[y, c, 1]), int(pairs[y, c, 0])
+            strip = out[y, c*8:c*8+8]
+            img.bitmap[r, c, ln] = int(np.packbits((strip == hi).astype(np.uint8))[0])
+            img.screens[ln, r, c] = (hi << 4) | lo
+    img.color[:] = 0
+    # the AFLI bug renders the left 3 columns light grey (no background
+    # fallback in hires); paint the right blank column grey too and give
+    # the preview the same bands -- the display uses a grey border so the
+    # whole thing reads as an intentional frame
+    img.screens[:, :, :VIS0] = 0xFF
+    img.screens[:, :, VIS0 + VIS_COLS:] = 0xFF
+    img.bitmap[:, :VIS0] = 0
+    img.bitmap[:, VIS0 + VIS_COLS:] = 0
+    out[:, :VIS0 * 8] = 15
+    out[:, (VIS0 + VIS_COLS) * 8:] = 15
+    return img, out
+
+
 def _feat10(mask):
     m = mask.astype(float)
     xs, ys = np.meshgrid(np.arange(8), np.arange(8))

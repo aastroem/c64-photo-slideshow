@@ -7,6 +7,9 @@
 ; upper bits are the live IEC serial lines; writing them back wedges the bus.
 to_fli:
         sei
+        lda #0                  ; black border/frame
+        sta border_color
+        sta $d020
         lda #$18                ; multicolor on for FLI
         sta $d016
         lda #$18
@@ -25,9 +28,31 @@ to_fli:
         cli
         rts
 
+; ---- AFLI: the FLI display with multicolor off (hires + per-line colors)
+to_afli:
+        sei
+        lda #$0f                ; light grey border: the AFLI bug columns
+        sta border_color        ; render light grey, so frame them
+        sta $d020
+        lda #$08                ; hires
+        sta $d016
+        lda #$38
+        sta $d011
+        lda #$08
+        sta $d018
+        lda #RASTER_FLI
+        sta $d012
+        lda #STATE_FLI
+        sta state
+        cli
+        rts
+
 ; ---- standard hires bitmap (screen 0 colors, bitmap $6000), no FLI IRQ
 to_hires:
         sei
+        lda #0
+        sta border_color
+        sta $d020
         lda #$08                ; multicolor off
         sta $d016
         lda #$3b                ; bitmap mode
@@ -125,13 +150,14 @@ poll_skip:
         beq .done
         dec .ackn
         bne .grey
-        lda #0                  ; blip over: back to black
+        lda border_color        ; blip over: restore the slide's frame
         sta $d020
         rts
 .grey   lda #12
         sta $d020
 .done   rts
 .ackn   !byte 0
+border_color !byte 0
 
 skip_prev  !byte 0
 skip_latch !byte 0

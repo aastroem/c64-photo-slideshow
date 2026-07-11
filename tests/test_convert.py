@@ -96,3 +96,14 @@ def test_hires_mode_packs_flip_container():
         assert (img.screens[bank] == img.screens[0]).all()
     assert len(img.pack()) == 15727
     assert out.shape == (200, 320)
+
+
+def test_afli_mode_per_line_pairs():
+    import modes
+    import numpy as np
+    rng = np.random.default_rng(3)
+    noise = rng.integers(0, 256, (600, 900, 3), dtype=np.uint8)
+    img, out = modes.convert_afli(Image.fromarray(noise), convert.Settings())
+    # screen banks must differ (per-line pairs), unlike plain hires
+    assert any((img.screens[b] != img.screens[0]).any() for b in range(1, 8))
+    assert len(img.pack()) == 15727

@@ -73,8 +73,8 @@ load_retry:
         inc $d020               ; error: flash border, retry forever
         jmp load_retry
 load_ok:
-        lda #0
-        sta $d020
+        lda border_color        ; clear any error flash back to the
+        sta $d020               ; current slide's frame color
         ldx picnum
         lda slide_modes,x
         sta cur_mode
@@ -82,7 +82,11 @@ load_ok:
         jsr dissolve_reset
         lda cur_mode
         beq .m_fli
+        cmp #3
+        beq .m_afli
         jsr to_hires
+        jmp .m_done
+.m_afli jsr to_afli
         jmp .m_done
 .m_fli  jsr to_fli              ; old image back in full FLI...
 .m_done

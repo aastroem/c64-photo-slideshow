@@ -104,11 +104,13 @@ an odd portrait out gets side bars as before.
 - `--strength`, `--sat`, `--gamma` — dither amount, saturation, gamma
 - `--crop dx,dy` — shift the crop window (−1..1)
 - `--pad 0-15` — side-bar color for portrait photos (default 0, black)
-- `--mode fli|hires|hires-mono|hires-greys` — per-slide display mode:
-  multicolor FLI (default, best for photos), standard hires bitmap at
-  320×200 with 2 colors per 8×8 cell (crisper faces and line art), or the
-  hires mono/grey-ladder looks (newsprint engraving). Modes mix freely
-  within one deck — the C64 switches display per slide.
+- `--mode fli|afli|hires|hires-mono|hires-greys` — per-slide display mode:
+  multicolor FLI (default, smoothest color), **AFLI** (hires FLI: 320-wide
+  detail *and* per-scanline color — arguably the best photo mode; its
+  hardware-garbage left columns are framed by a light grey border), plain
+  hires bitmap (2 colors per 8×8 cell), or the hires mono/grey-ladder looks
+  (newsprint engraving). Modes mix freely within one deck — the C64
+  switches display per slide.
 
 ## Dithering
 
@@ -137,10 +139,10 @@ The full menu (`compare.py` renders any photo through all of them):
 ![dither mode comparison](docs/img/dithers.png)
 
 Dithering also pairs with the per-slide **display modes** (`--mode`): the
-default multicolor FLI trades resolution for color; standard hires trades
-color for resolution (sharper faces, crisper text); the mono variants turn
-the dither into the whole picture — 1-bit newsprint or a smoother grey
-ladder. All dizzy 0.5 below:
+default multicolor FLI trades resolution for color; AFLI keeps hires
+resolution *and* changes colors every scanline; standard hires trades
+color for resolution; the mono variants turn the dither into the whole
+picture — 1-bit newsprint or a smoother grey ladder. All dizzy 0.5 below:
 
 ![display mode comparison](docs/img/modes.png)
 

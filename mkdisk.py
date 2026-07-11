@@ -169,7 +169,8 @@ def main():
 
     # per-slide display mode table for the C64 program
     import convert as _conv
-    MODE_IDS = {"fli": 0, "hires": 1, "hires-mono": 1, "hires-greys": 1}
+    MODE_IDS = {"fli": 0, "hires": 1, "hires-mono": 1, "hires-greys": 1,
+                "afli": 3}
     mode_ids = [MODE_IDS.get(_conv.load_sidecar(src).mode, 0)
                 for src in sources]
     (BUILD / "gen" / "slide_modes.asm").write_text(
