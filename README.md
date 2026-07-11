@@ -1,4 +1,6 @@
-# c64-photo-slideshow
+# FLIpbook
+
+*A dizzy FLI slideshow for the Commodore 64.*
 
 Turn your photos into a bootable **Commodore 64 slideshow** on a real
 1541-compatible disk. Photos are converted to multicolor **FLI** (the C64
