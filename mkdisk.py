@@ -137,6 +137,9 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--dir", type=pathlib.Path, default=HERE / "samples")
     ap.add_argument("--force", action="store_true", help="reconvert all photos")
+    ap.add_argument("--fill", action="store_true",
+                    help="fit as many slides as the disk holds, dropping the "
+                         "tail of the deck instead of refusing to build")
     ap.add_argument("--shuffle", action="store_true",
                     help="random slide order (a pinned 01.* stays first)")
     ap.add_argument("--mode", choices=["fli", "afli", "hires", "hires-mono",
@@ -205,27 +208,45 @@ def main():
     # per-slide display mode table for the C64 program
     MODE_IDS = {"fli": 0, "hires": 1, "hires-mono": 1, "hires-greys": 1,
                 "afli": 3}
-    mode_ids = [MODE_IDS[m] for m in slide_modes]
-    (BUILD / "gen" / "slide_modes.asm").write_text(
-        "slide_modes\n        !byte " +
-        ",".join(str(v) for v in mode_ids) + "\n")
 
-    sh("acme", "-I", "src", "-I", "build/gen", "-f", "cbm",
-       "-o", BUILD / "boot.prg", "src/boot.asm")
-    sh("acme", "-I", "src", "-I", "build/gen", "-f", "cbm",
-       f"-DNUM_PICS={len(sources)}", "-o", BUILD / "main.prg", "src/main.asm")
+    def assemble(n):
+        """Build boot+main for the first n slides -> (used blocks, detail)."""
+        (BUILD / "gen" / "slide_modes.asm").write_text(
+            "slide_modes\n        !byte " +
+            ",".join(str(MODE_IDS[m]) for m in slide_modes[:n]) + "\n")
+        sh("acme", "-I", "src", "-I", "build/gen", "-f", "cbm",
+           "-o", BUILD / "boot.prg", "src/boot.asm")
+        sh("acme", "-I", "src", "-I", "build/gen", "-f", "cbm",
+           f"-DNUM_PICS={n}", "-o", BUILD / "main.prg", "src/main.asm")
 
-    main_prg = (BUILD / "main.prg").read_bytes()
-    main_end = (main_prg[0] | main_prg[1] << 8) + len(main_prg) - 2
-    assert main_end < 0x4000, f"MAIN ends at ${main_end:04x}, must stay below $4000"
+        main_prg = (BUILD / "main.prg").read_bytes()
+        main_end = (main_prg[0] | main_prg[1] << 8) + len(main_prg) - 2
+        assert main_end < 0x4000, \
+            f"MAIN ends at ${main_end:04x}, must stay below $4000"
 
-    b_boot = blocks(BUILD / "boot.prg")
-    b_main = blocks(BUILD / "main.prg")
-    used = b_boot + b_main + sum(blocks(z) for z in packed)
-    detail = (f"boot {b_boot}, main {b_main}, "
-              f"pics {'+'.join(str(blocks(z)) for z in packed)}")
+        b_boot, b_main = blocks(BUILD / "boot.prg"), blocks(BUILD / "main.prg")
+        used = b_boot + b_main + sum(blocks(z) for z in packed[:n])
+        detail = (f"boot {b_boot}, main {b_main}, "
+                  f"pics {'+'.join(str(blocks(z)) for z in packed[:n])}")
+        return used, detail
+
+    n = len(packed)
+    used, detail = assemble(n)
+    if args.fill:
+        # keep dropping the tail of the deck until it fits -- the slide order
+        # is a priority order, so the last ones curated are the first to go
+        while used > MAX_BLOCKS and n > 2:
+            print(f"  --fill: {used}/{MAX_BLOCKS} blocks, dropping slide {n} "
+                  f"({sources[n - 1].name}, {blocks(packed[n - 1])} blocks)")
+            n -= 1
+            used, detail = assemble(n)
+        packed, sources = packed[:n], sources[:n]
+
     print(f"\nbuild/slideshow.d64: {used}/{MAX_BLOCKS} blocks ({detail})")
     check_capacity(used, detail, default_mode)
+    if args.fill and n < len(slide_modes):
+        print(f"filled to {n} of {len(slide_modes)} slides; "
+              f"{MAX_BLOCKS - used} blocks spare")
 
     d64 = BUILD / "slideshow.d64"
     d64.unlink(missing_ok=True)
