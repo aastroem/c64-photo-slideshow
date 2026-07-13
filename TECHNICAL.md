@@ -1,15 +1,18 @@
 # DitherDeck 64 — technical notes
 
-Bootable d64: 2-11 photos as multicolor FLI (ZX0-crunched, Krill loadcompd),
-image-to-image dissolve transitions. Loads happen with the FLI display ON —
+Bootable d64: photos as multicolor FLI (ZX0-crunched, Krill loadcompd),
+image-to-image dissolve transitions. Slide count is bounded by the filename
+table (18) and, in practice, by disk blocks: crunched slide sizes vary with
+photo and display mode, so `mkdisk.py` sums the actual blocks (boot + main +
+each packed pic) against the 664 available and refuses to write an
+over-capacity disk. Loads happen with the FLI display ON —
 the outgoing image stays pixel-perfect (the earlier MC-degrade fallback made
 FLI line-0 colors bleed across cell rows: white speckle everywhere; and the
 fade-to-black variant was dropped). The display IRQ costs ~2/3 CPU
 during loads, which just makes them slower — Krill v194 tolerates the long
 handler fine. SID music, PAL only. Built by `mkdisk.py`
 (`--dir photos/kenneth`; order = 01.* first, then EXIF time; portraits
-padded with `pad` sidecar color). Design spec in
-`the repo history`.
+padded with `pad` sidecar color).
 `src/fade.asm` (luminance fade, tested) is kept but not linked. Loader zp is
 $e0-$ef with ZX0 resident ($0200-$0406) — music zp moved to $50-$55, display
 savesp $57.
@@ -30,7 +33,10 @@ Boot chain: "SLIDESHOW" (KERNAL load, $0801-$1676: stub + install blob at
 $0900 + resident blob) → jsr install → SEI forever → copy resident to $0200
 → loadraw "MAIN" ($0900, overwrites spent install) → jmp $0900.
 
-## FLIP file format (15727 bytes, fits 10 pics + code on one d64 side)
+## FLIP file format (15727 bytes uncrunched)
+
+ZX0 shrinks each pic by a photo-dependent amount, so how many fit on a side
+is a block sum, not a constant — see the capacity check above.
 
 2-byte load addr $8000, then screens 8×25×37, bitmap 25×37×8, color 25×37 —
 columns 0-2 (FLI bug) are omitted and always black. Backwards in-place

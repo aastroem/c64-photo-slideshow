@@ -8,7 +8,7 @@ The root Python tools form the image pipeline: `convert.py` converts photos, `fl
 
 - `./setup.sh` checks ACME, VICE, Python, compiler tools, Pillow, and NumPy, then builds the bundled ZX0 cruncher.
 - `python3 -m pytest` runs all Python and assembly-equivalence tests. ACME is required for assembly tests.
-- `python3 mkdisk.py --dir photos/` converts 2–11 images and creates `build/slideshow.d64`.
+- `python3 mkdisk.py --dir photos/` converts 2–18 images and creates `build/slideshow.d64` (it fails if the crunched slides overflow the disk's 664 blocks).
 - `./go.sh [photo-directory]` performs setup if needed, builds the disk, and launches VICE.
 - `python3 preview.py build/pic01.fli` previews a converted slide without starting the emulator.
 - `python3 gen_tables.py` regenerates assembly includes in `build/gen/`; never edit those outputs manually.
