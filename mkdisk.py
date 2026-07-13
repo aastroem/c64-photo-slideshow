@@ -39,6 +39,11 @@ def blocks(path):
     return (path.stat().st_size - 2 + 253) // 254
 
 
+def effective_mode(raw, default):
+    """Sidecar pin wins over the disk-wide default. See --mode."""
+    return raw.get("mode", default)
+
+
 def shot_time(photo):
     try:
         ex = Image.open(photo).getexif()
@@ -118,6 +123,10 @@ def main():
     ap.add_argument("--force", action="store_true", help="reconvert all photos")
     ap.add_argument("--shuffle", action="store_true",
                     help="random slide order (a pinned 01.* stays first)")
+    ap.add_argument("--mode", choices=["fli", "afli", "hires", "hires-mono",
+                                       "hires-greys"],
+                    help="disk-wide display mode; a photo whose sidecar pins "
+                         "a mode keeps it")
     args = ap.parse_args()
 
     BUILD.mkdir(exist_ok=True)
@@ -148,31 +157,39 @@ def main():
             sources.append(slide[0])
             print(f"  {i:2d}. {slide[0].name}  ({shot_time(slide[0]):%Y-%m-%d %H:%M})")
 
+    import convert as _conv
+    default_mode = args.mode or "fli"
     packed = []
+    slide_modes = []
     for i, photo in enumerate(sources, 1):
         fli = BUILD / f"pic{i:02d}.fli"
         zx0 = BUILD / f"pic{i:02d}.zx0"
         sidecar = photo.with_name(photo.name + ".c64.json")
         srcstamp = BUILD / f"pic{i:02d}.src"
+        raw = _conv.raw_sidecar(photo)
+        mode = effective_mode(raw, default_mode)
+        slide_modes.append(mode)
+        if args.mode and "mode" in raw and raw["mode"] != args.mode:
+            print(f"  note: {photo.name} keeps its sidecar mode '{raw['mode']}'")
+        stamp = f"{photo}\n{mode}"               # reconvert when either changes
         stale = (args.force or not fli.exists()
                  or not srcstamp.exists()
-                 or srcstamp.read_text() != str(photo)   # different source!
+                 or srcstamp.read_text() != stamp
                  or fli.stat().st_mtime < photo.stat().st_mtime
                  or (sidecar.exists() and fli.stat().st_mtime < sidecar.stat().st_mtime))
         if stale:
-            print(f"converting {photo.name} -> {fli.name}")
-            sh(sys.executable, "convert.py", photo, "-o", fli)
-            srcstamp.write_text(str(photo))
+            print(f"converting {photo.name} -> {fli.name}  ({mode})")
+            sh(sys.executable, "convert.py", photo, "-o", fli,
+               "--default-mode", default_mode)
+            srcstamp.write_text(stamp)
         if stale or not zx0.exists() or zx0.stat().st_mtime < fli.stat().st_mtime:
             sh(DALI, "-o", zx0, fli)
         packed.append(zx0)
 
     # per-slide display mode table for the C64 program
-    import convert as _conv
     MODE_IDS = {"fli": 0, "hires": 1, "hires-mono": 1, "hires-greys": 1,
                 "afli": 3}
-    mode_ids = [MODE_IDS.get(_conv.load_sidecar(src).mode, 0)
-                for src in sources]
+    mode_ids = [MODE_IDS[m] for m in slide_modes]
     (BUILD / "gen" / "slide_modes.asm").write_text(
         "slide_modes\n        !byte " +
         ",".join(str(v) for v in mode_ids) + "\n")

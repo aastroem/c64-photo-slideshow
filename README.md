@@ -112,6 +112,15 @@ an odd portrait out gets side bars as before.
   (newsprint engraving). Modes mix freely within one deck — the C64
   switches display per slide.
 
+`mkdisk.py --mode afli` sets the mode for the *whole disk*; a photo whose
+sidecar pins a mode (because you ran `convert.py --mode ...` on it) keeps
+that mode, so "all AFLI except the first slide" is just:
+
+```bash
+python3 convert.py photos/sample01.jpg --mode fli
+python3 mkdisk.py --dir photos/ --mode afli
+```
+
 ## Dithering
 
 A C64 sliver offers only four colors, so dithering carries most of the
