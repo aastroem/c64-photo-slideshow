@@ -83,7 +83,11 @@ def save_sidecar(photo, settings, keys):
     """
     data = {f.name: getattr(settings, f.name)
             for f in dataclasses.fields(Settings) if f.name in keys}
-    sidecar_path(pathlib.Path(photo)).write_text(json.dumps(data, indent=1))
+    path = sidecar_path(pathlib.Path(photo))
+    if data:
+        path.write_text(json.dumps(data, indent=1))
+    else:
+        path.unlink(missing_ok=True)
 
 
 def prepare(photo, s):

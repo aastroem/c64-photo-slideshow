@@ -93,6 +93,22 @@ def test_sidecar_records_only_pinned_keys(tmp_path):
     assert convert.raw_sidecar(p) == {"sat": 1.2}
 
 
+def test_save_sidecar_writes_no_file_when_nothing_pinned(tmp_path):
+    p = tmp_path / "x.jpg"
+    solid((10, 200, 30)).save(p)
+    convert.save_sidecar(p, convert.Settings(), set())
+    assert not convert.sidecar_path(p).exists()
+
+
+def test_save_sidecar_removes_existing_file_when_unpinned(tmp_path):
+    p = tmp_path / "x.jpg"
+    solid((10, 200, 30)).save(p)
+    convert.save_sidecar(p, convert.Settings(sat=1.2), {"sat"})
+    assert convert.sidecar_path(p).exists()
+    convert.save_sidecar(p, convert.Settings(), set())
+    assert not convert.sidecar_path(p).exists()
+
+
 def test_raw_sidecar_is_empty_when_absent(tmp_path):
     p = tmp_path / "x.jpg"
     solid((10, 200, 30)).save(p)
