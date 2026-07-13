@@ -7,8 +7,8 @@ Fixed seeds make the set reproducible; sources recorded in photos/SOURCES.txt.
 import pathlib
 import subprocess
 
-SEEDS = ["beach", "mountain", "city", "forest", "harbor",
-         "sunset", "market", "island", "river", "castle"]
+SEEDS = ["festival", "quilt", "carousel", "lantern", "reef",
+         "pumpkins", "rickshaw", "orchard", "produce", "flamingo"]
 
 photos = pathlib.Path(__file__).resolve().parent / "photos"
 photos.mkdir(exist_ok=True)
