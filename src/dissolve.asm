@@ -1,7 +1,9 @@
 ; dissolve_cells: copy the next A cells of the incoming image from VIC bank B
 ; (+ color staging at $C000) into displayed bank A (+ $D800), in the shuffled
 ; order of dis_lo/dis_hi. Called from the main thread during border time;
-; ~16 cells per frame gives a ~1.2 s dissolve. Stops cleanly at 1000 cells.
+; 16 cells per frame would be a ~1.2 s dissolve, but a batch is interruptible
+; and the FLI IRQ eats ~2/3 of the CPU, so a batch can overrun a frame and the
+; real thing runs longer (unmeasured). Stops cleanly at 1000 cells.
 ;
 ; per cell (offset o = row*40+col):
 ;   screens  $8000+bank*1024+o -> $4000+bank*1024+o   (8 banks)

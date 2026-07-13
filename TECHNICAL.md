@@ -8,7 +8,15 @@ each packed pic) against the 664 available and refuses to write an
 over-capacity disk. Loads happen with the FLI display ON —
 the outgoing image stays pixel-perfect (the earlier MC-degrade fallback made
 FLI line-0 colors bleed across cell rows: white speckle everywhere; and the
-fade-to-black variant was dropped). The display IRQ costs ~2/3 CPU
+fade-to-black variant was dropped). "Pixel-perfect" holds while the display
+mode is unchanged; MAIN selects the incoming slide's mode before dissolving
+it in, and hires-vs-multicolor is a global VIC-II bit, so a cross-mode
+transition necessarily shows the outgoing image in the incoming mode until
+the dissolve covers it. There is no cell-level fix (one frame cannot be hires
+in some cells and multicolor in others), and switching mode *after* the
+dissolve would be worse — it would misrender the incoming image, which is the
+one being revealed. Treated as a deliberate mode-morph.
+The display IRQ costs ~2/3 CPU
 during loads, which just makes them slower — Krill v194 tolerates the long
 handler fine. SID music, PAL only. Built by `mkdisk.py`
 (`--dir photos/kenneth`; order = 01.* first, then EXIF time; portraits
@@ -20,14 +28,22 @@ savesp $57.
 ## Memory map (runtime)
 
 ```
-$0200-$02DF  Krill resident (loadraw = $0200); zp $e0-$e4
+$0200-$0406  Krill resident, ZX0 included (loadraw = $0200); zp $e0-$ef
 $0900-$3FFF  MAIN prg: state machine, IRQ/FLI displayer (unrolled 199 lines),
              music, unpack, fade, dissolve, Fisher-Yates order gen
 $4000-$7FFF  VIC bank A (displayed): screens $4000+i*$400, bitmap $6000
 $8000-$BFFF  VIC bank B: pics load here ($8000, FLIP format), unpack in place
 $C000-$C3E7  color-RAM staging for incoming pic
+$C3E8/$C3E9  load-error code / failing slide index (err_code, err_pic)
 $C400/$C800  dissolve order tables (1000 x lo/hi), generated at runtime
+
+zero page:   loader $e0-$ef, music $50-$55, display savesp $57, effects $f7-$fa
 ```
+
+Load errors are reported at $C3E8, *not* in low memory: the resident owns
+$0200-$0406, and the error path retries the load — writing diagnostics into
+the loader would make the retry run a corrupted decompressor. `src/boot.asm`
+asserts ERR_CODE stays outside the resident at assembly time.
 
 Boot chain: "SLIDESHOW" (KERNAL load, $0801-$1676: stub + install blob at
 $0900 + resident blob) → jsr install → SEI forever → copy resident to $0200

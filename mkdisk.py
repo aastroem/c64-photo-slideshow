@@ -36,7 +36,8 @@ def sh(*args):
 
 
 def blocks(path):
-    return (path.stat().st_size - 2 + 253) // 254
+    # every byte of the file lands on disk, PRG load address included
+    return (path.stat().st_size + 253) // 254
 
 
 def effective_mode(raw, default):

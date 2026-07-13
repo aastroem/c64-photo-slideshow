@@ -10,13 +10,9 @@ to_fli:
         lda #0                  ; black border/frame
         sta border_color
         sta $d020
-        lda #$18                ; multicolor on for FLI
-        sta $d016
-        lda #$18
-        sta $d016               ; multicolor, 40 cols
-        lda #0
-        sta $d020
         sta $d021
+        lda #$18                ; multicolor on for FLI, 40 cols
+        sta $d016
         lda #$38
         sta $d011
         lda #$08

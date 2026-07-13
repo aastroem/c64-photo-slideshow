@@ -19,7 +19,9 @@ render your own with `make_demo_gif.py`).*
 
 ![sample conversions](docs/img/samples.png)
 
-- 2–18 photos per disk (ZX0-compressed, loaded by Krill's fast loader)
+- 2–18 slides per disk (ZX0-compressed, loaded by Krill's fast loader) — a
+  pair of portrait photos becomes one side-by-side slide, so the photo count
+  can be higher than the slide count
 - slides melt into each other with a randomized cell dissolve — the next
   photo loads *underneath* the running FLI display, so there are no black
   screens, fades, or degraded frames, ever
@@ -110,7 +112,11 @@ an odd portrait out gets side bars as before.
   hardware-garbage left columns are framed by a light grey border), plain
   hires bitmap (2 colors per 8×8 cell), or the hires mono/grey-ladder looks
   (newsprint engraving). Modes mix freely within one deck — the C64
-  switches display per slide.
+  switches display per slide. Hires-vs-multicolor is a global VIC-II setting,
+  though, so a slide that *changes* mode dissolves in with the outgoing image
+  reinterpreted in the incoming mode: a brief mode-morph rather than a clean
+  cross-fade. Transitions between same-mode slides (including hires ↔
+  hires-mono ↔ hires-greys) are pixel-exact.
 
 `mkdisk.py --mode afli` sets the mode for the *whole disk*; a photo whose
 sidecar pins a mode (because you ran `convert.py --mode ...` on it) keeps

@@ -6,9 +6,12 @@ License: see loader/README (free to use; BSD-style disclaimer)
 Built locally with ca65 (brew cc65) via:
   EXTCONFIGPATH=../ourconfig make PLATFORM=c64 prg INSTALL=0900 RESIDENT=0200 ZP=e0
 Config trimmed in ourconfig/loaderconfig.inc:
-  ONLY_1541_AND_COMPATIBLE=1, DECOMPRESSOR=NONE, LOAD_COMPD_API=0
+  ONLY_1541_AND_COMPATIBLE=1, DECOMPRESSOR=ZX0, LOAD_COMPD_API=1
 Produces: loader/build/install-c64.prg ($0900-$1597),
-          loader/build/loader-c64.prg ($0200-$02DF), loadersymbols-c64.inc
+          loader/build/loader-c64.prg ($0200-$0406), loadersymbols-c64.inc
+  The ZX0 decompressor is what pushes the resident past $02DF to $0406 --
+  three pages, not two. Anything that scribbles on low memory (error codes,
+  diagnostics) must stay clear of $0200-$0406; see ERR_CODE in src/boot.asm.
 IMPORTANT usage constraints found the hard way (see notes/slideshow.md):
   - $DD00 writes while the loader is resident: upper 6 bits MUST be 0
   - resident at $0200 overlaps KERNAL kbd buffer/RS232 vars: SEI before

@@ -457,6 +457,8 @@ def main():
     ap.add_argument("--sat", type=float)
     ap.add_argument("--gamma", type=float)
     ap.add_argument("--crop")
+    ap.add_argument("--pad", type=int, choices=range(16), metavar="0-15",
+                    help="C64 color for the side bars on portrait photos")
     ap.add_argument("--mode", choices=["fli", "afli", "hires", "hires-mono",
                                        "hires-greys"])
     ap.add_argument("--default-mode", choices=["fli", "afli", "hires",
@@ -467,7 +469,7 @@ def main():
 
     s = load_sidecar(args.photo)
     pinned = set(raw_sidecar(args.photo))
-    for k in ("dither", "strength", "sat", "gamma", "crop", "mode"):
+    for k in ("dither", "strength", "sat", "gamma", "crop", "pad", "mode"):
         v = getattr(args, k)
         if v is not None:
             setattr(s, k, v)

@@ -5,6 +5,10 @@ Shares palette and pixel semantics with the converter, so judging quality on
 the Mac needs no C64 build.
 
     python3 preview.py image.fli [-o out.png]
+
+Multicolor FLI only: the FLIP container carries no mode metadata, so an AFLI
+or hires .fli decoded here comes out as multicolor garbage. For those modes
+use the <name>_preview.png that convert.py/mkdisk.py write alongside the .fli.
 """
 
 import argparse
