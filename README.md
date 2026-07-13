@@ -210,8 +210,8 @@ and it is where most of the picture quality actually lives. Two rules:
 
 **Score a pair by the error it leaves, not by counting colors.** The obvious
 heuristic — take the two most *common* colors in the block — is a poor one: the
-most frequent colors are rarely the two that best reconstruct the block once
-it is dithered. So every candidate pair is scored by
+most frequent colors are rarely the two that best *reconstruct* the block. So
+every candidate pair is scored by
 
 ```
 E(a, b) = Σ over the block's pixels of min( d(px, a), d(px, b) )
@@ -237,11 +237,24 @@ line makes the image shimmer in bands, which reads worse than a column seam.
 `--coherence` (default 0.2, `0` disables) sets that penalty. It steers **which
 colors a block picks — never a pixel**; nothing is blurred or filtered.
 
-FLI has the same problem one level up: its per-cell color-RAM entry is shared by
-all 8 lines of the cell, and the sliver pairs are chosen against it, so the two
-are coupled. They are now solved by **alternating minimisation** — pick color
-RAM, solve the pairs, re-pick color RAM against the error those pairs actually
-leave, repeat — rather than fixing color RAM up front and living with it.
+**FLI is solved exactly.** Its per-cell color-RAM entry is shared by all 8 lines
+of the cell and the sliver pairs are chosen against it, so the two are coupled —
+but the coupling is a *tree*, not a loop: given the cell's color, its slivers are
+independent of each other. So for each cell and each of the 16 candidate colors,
+minimise every child sliver over all 120 pairs and sum:
+
+```
+U(cell, cram) = Σ over the cell's slivers of  min over pairs of  err(cram, pair)
+```
+
+The best candidate is then just the argmin, and the pairs fall out conditionally.
+No alternating minimisation, no local minima, no convergence to argue about.
+
+A caveat on the energy, since it would be easy to over-claim: `E(a,b)` is the
+error of an independent nearest-of-two quantizer, **not** true post-dither error.
+It cannot see that a color sitting *between* `a` and `b` is reproduced well by
+alternating them, so it slightly favors one near color plus a tied second over a
+pair that brackets the target. Good enough in practice, but it is a model.
 
 ## Real hardware
 

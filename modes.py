@@ -67,20 +67,52 @@ _PDIST = np.array([[_pdist(p, q) for q in _PAIRS] for p in _PAIRS],
                   dtype=np.float64)
 
 
+# Break exact ties toward a degenerate (a,a) pair. Without this, argmin over a
+# solid block picks the first pair containing its color -- (0, k), never (k, k)
+# -- so the block claims a black it never displays, and PDIST then reads two
+# unrelated solid blocks as "sharing" that phantom black.
+_TIE_EPS = 1e-9
+_DISTINCT = np.array([a != b for a, b in _PAIRS], dtype=np.float64)
+
+
 def _pair_energy(Dblocks):
-    """Dblocks: (..., npix, 16) distances -> (..., 136) post-dither error."""
+    """Dblocks: (..., npix, 16) distances -> (..., 136) quantization error.
+
+    NOT post-dither error: this scores each pixel at min(d(px,a), d(px,b)), an
+    independent nearest-of-two quantizer. It cannot see that a color *between*
+    a and b is reproduced well by alternating them, so it slightly favours one
+    near color plus a tied second over a pair that brackets the target. Good
+    enough in practice, but it is a model, not the truth.
+    """
     shape = Dblocks.shape[:-2]
     E = np.empty(shape + (_NPAIR,))
     for i, (a, b) in enumerate(_PAIRS):
         E[..., i] = np.minimum(Dblocks[..., a], Dblocks[..., b]).sum(-1)
-    return E
+    return E + _TIE_EPS * _DISTINCT
 
 
-def _icm(E, lam_h, lam_v, sweeps=6, pdist=None):
+def _lam(E, coherence, vis=None):
+    """Scale the coherence penalty to the image's own error magnitude.
+
+    Only blocks that actually carry a photo and actually have error get a vote.
+    A median over everything is zero the moment half the blocks are exact --
+    which is what a padded portrait's sidebars are -- and lambda 0 silently
+    disables coherence on precisely the images that most need it.
+    """
+    if coherence <= 0:
+        return 0.0
+    m = E[:, vis].min(-1) if vis is not None else E.min(-1)
+    m = m[m > _TIE_EPS * 2]
+    return coherence * float(np.median(m)) if m.size else 0.0
+
+
+def _icm(E, lam_h, lam_v, pdist=None, max_sweeps=60):
     """Minimise E + lam * sum_neighbours PDIST over a (R,C) grid of blocks.
 
-    Checkerboard (not all-at-once) updates: a Jacobi sweep can oscillate
-    between two equally good configurations and never settle.
+    Checkerboard (not all-at-once) updates: each parity sweep is a true
+    coordinate minimisation, so the objective cannot increase. Runs to a fixed
+    point -- a fixed sweep count is not convergence, and labels do still move
+    well past six sweeps.
     """
     pdist = _PDIST if pdist is None else pdist
     p = E.argmin(-1).astype(np.int64)
@@ -88,14 +120,14 @@ def _icm(E, lam_h, lam_v, sweeps=6, pdist=None):
         return p
     R, C = p.shape
     rr, cc = np.meshgrid(np.arange(R), np.arange(C), indexing="ij")
-    for _ in range(sweeps):
+    for _ in range(max_sweeps):
         changed = 0
         for parity in (0, 1):
             cost = E.copy()
-            if lam_v > 0:
+            if lam_v > 0 and R > 1:
                 cost[1:] += lam_v * pdist[:, p[:-1]].transpose(1, 2, 0)
                 cost[:-1] += lam_v * pdist[:, p[1:]].transpose(1, 2, 0)
-            if lam_h > 0:
+            if lam_h > 0 and C > 1:
                 cost[:, 1:] += lam_h * pdist[:, p[:, :-1]].transpose(1, 2, 0)
                 cost[:, :-1] += lam_h * pdist[:, p[:, 1:]].transpose(1, 2, 0)
             new = cost.argmin(-1)
@@ -119,11 +151,7 @@ def _solve_pairs(Dblocks, coherence, lam_v_scale=1.0, allowed=None):
         keep = np.asarray(allowed)
         E = E[..., keep]
         pdist = _PDIST[np.ix_(keep, keep)]   # distances in the subset's own space
-    lam = 0.0
-    if coherence > 0:
-        # scale the penalty to the image's own error magnitude, so `coherence`
-        # means the same thing on a flat photo and a busy one
-        lam = coherence * float(np.median(E.min(-1)))
+    lam = _lam(E, coherence, vis=slice(VIS0, VIS0 + VIS_COLS))
     idx = _icm(E, lam, lam * lam_v_scale, pdist=pdist)
     if allowed is not None:
         idx = np.asarray(allowed)[idx]
@@ -268,16 +296,20 @@ def convert_afli(photo, s):
     # Lines 197-199 (rasters 248-250) sit past the badline window, so the VIC
     # redisplays line 196's screen colors there -- and it resolves *their*
     # bitmap bits against that pair, which would invert pixels wherever the
-    # light/dark order disagrees. Score lines 196-199 as one block, as the FLI
-    # converter does (convert.py), so bit 1 always means the same ink.
-    E[196:200] = E[196:200].sum(0) / 4.0
+    # light/dark order disagrees. The four lines are therefore ONE variable, so
+    # collapse them into a single MRF node (unary = their summed error, one
+    # vertical edge, to line 195) and solve that. Solving them as four free
+    # nodes and then overwriting three with line 196's label is not the same
+    # thing: the label that wins for line 196 alone is not always the one that
+    # wins for the four of them together.
+    Ec = np.concatenate([E[:196], E[196:200].sum(0)[None]], axis=0)  # 197 nodes
 
-    lam = s.coherence * float(np.median(E.min(-1))) if s.coherence > 0 else 0.0
+    lam = _lam(Ec, s.coherence, vis=slice(VIS0, VIS0 + VIS_COLS))
     # vertical coherence matters more here: a pair that flips line to line
     # makes the image shimmer in horizontal bands, which reads worse than the
     # 8-pixel column seams that horizontal coherence fixes
-    idx = _icm(E, lam, lam * 2.0)
-    idx[196:200] = idx[196]                   # one screen byte for the tail
+    idxc = _icm(Ec, lam, lam * 2.0)
+    idx = np.concatenate([idxc[:196], np.repeat(idxc[196:197], 4, axis=0)])
     pairs = np.stack([_PAIR_LO[idx], _PAIR_HI[idx]], axis=-1)
     pairs[:, :VIS0] = 0
     pairs[:, VIS0 + VIS_COLS:] = 0

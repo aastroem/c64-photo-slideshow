@@ -161,22 +161,35 @@ def _sliver_pairs(Ds, base):
 
 def _base_cost(Ds, colorram):
     """Per-pixel cost of the two colors every sliver gets for free: the black
-    background, and the cell's color-RAM entry."""
-    cram = np.repeat(colorram[np.newaxis, :, :], 8, axis=0).reshape(-1, fli.COLS)
+    background, and the cell's color-RAM entry.
+
+    Scanline y sits in cell row y//8, so it sees colorram[y//8]. Getting this
+    wrong is silent: the pairs are then chosen against a color-RAM entry the
+    hardware will not show, while pass 2 (candidate_tables) and the VIC use the
+    real one, so the sliver's 4th color is a color the optimizer never scored.
+    """
+    cram = np.repeat(colorram, 8, axis=0)              # (200, COLS)
     return np.minimum(Ds[..., 0],
                       np.take_along_axis(
                           Ds, cram[:, :, None, None].astype(np.int64), 3)[..., 0])
 
 
-def pick_attributes(lab, sweeps=3):
+def pick_attributes(lab):
     """Pass 1: per-cell color-RAM color and per-sliver screen color pairs.
 
-    The two are coupled -- the best pair depends on what color RAM already
-    covers, and the best color-RAM entry depends on the pairs -- so they are
-    solved by alternating minimisation rather than picked in one shot. The
-    seed is the old majority vote; each sweep then re-picks color RAM to
-    minimise the error the *current* pairs actually leave, and re-picks the
-    pairs against it. Converges in two or three rounds.
+    The two are coupled -- a sliver's best pair depends on what its cell's color
+    RAM already covers -- but the coupling is a tree, not a loop: color RAM is a
+    cell-level variable and the pairs below it are conditionally independent of
+    each other. So this is solved EXACTLY, no alternating minimisation and no
+    local minima. For each cell and each of the 16 candidate color-RAM colors,
+    every child sliver is minimised over all 120 pairs; summing those gives the
+    cell's true cost for that candidate
+
+        U(cell, cram) = sum over the cell's slivers of
+                        min over pairs of  err(cram, pair)
+
+    and the best candidate is just the argmin. The pairs are then recovered
+    conditionally on the winner.
 
     lab: (200,160,3) OkLab image. Returns (screens, colorram, D) where
     D is the per-pixel distance-squared to each of the 16 colors.
@@ -184,35 +197,33 @@ def pick_attributes(lab, sweeps=3):
     pal = c64color.palette_oklab()
     d = lab[:, :, None, :] - pal[None, None, :, :]
     D = (d * d).sum(-1)                                   # (200,160,16)
-    near = np.argmin(D, axis=-1)
     Ds = D.reshape(H, fli.COLS, 4, 16)                    # sliver-wise
 
-    # seed: the most common non-black color in each cell
-    colorram = np.zeros((fli.ROWS, fli.COLS), dtype=np.uint8)
-    for r in range(fli.ROWS):
-        for c in range(fli.VIS0, fli.COLS):
-            block = near[r * 8:r * 8 + 8, c * 4:c * 4 + 4].ravel()
-            nonblack = block[block != 0]
-            if len(nonblack):
-                colorram[r, c] = np.bincount(nonblack, minlength=16).argmax()
+    black = Ds[..., 0]                                    # (200,COLS,4)
+    U = np.empty((fli.ROWS, fli.COLS, 16))
+    for k in range(16):
+        base = np.minimum(black, Ds[..., k])              # free colors: 0 and k
+        best = np.full((H, fli.COLS), np.inf)
+        for a in range(1, 16):
+            Da = np.minimum(base, Ds[..., a])
+            for b in range(a, 16):
+                np.minimum(best, np.minimum(Da, Ds[..., b]).sum(-1), out=best)
+        # the tail's four lines share one screen byte, so they are one variable:
+        # score them as a block, not as four free lines (see _sliver_pairs)
+        tail = np.full(fli.COLS, np.inf)
+        for a in range(1, 16):
+            Da = np.minimum(base[196:200], Ds[196:200, :, :, a])
+            for b in range(a, 16):
+                np.minimum(tail,
+                           np.minimum(Da, Ds[196:200, :, :, b]).sum(axis=(0, 2)),
+                           out=tail)
+        cell = best.reshape(fli.ROWS, 8, fli.COLS).sum(1)
+        cell[fli.ROWS - 1] = best[192:196].sum(0) + tail  # last row: 4 + tail
+        U[:, :, k] = cell
 
+    colorram = U.argmin(-1).astype(np.uint8)
+    colorram[:, :fli.VIS0] = 0                            # FLI-bug cols are black
     best_a, best_b = _sliver_pairs(Ds, _base_cost(Ds, colorram))
-    for _ in range(sweeps - 1):
-        # re-pick color RAM: with the pairs fixed, every pixel can already
-        # reach black or one of its sliver's two colors, so score each
-        # candidate by the error it removes on top of that, over the whole cell
-        pair_min = np.minimum(
-            np.take_along_axis(Ds, best_a[:, :, None, None].astype(np.int64), 3),
-            np.take_along_axis(Ds, best_b[:, :, None, None].astype(np.int64), 3))[..., 0]
-        covered = np.minimum(Ds[..., 0], pair_min)                # (200,COLS,4)
-        err = np.minimum(covered[..., None], Ds)                  # (200,COLS,4,16)
-        cell_err = (err.reshape(fli.ROWS, 8, fli.COLS, 4, 16)
-                       .sum(axis=(1, 3)))                         # (25,COLS,16)
-        new_cram = cell_err.argmin(-1).astype(np.uint8)
-        if np.array_equal(new_cram, colorram):
-            break
-        colorram = new_cram
-        best_a, best_b = _sliver_pairs(Ds, _base_cost(Ds, colorram))
 
     screens = np.zeros((8, fli.ROWS, fli.COLS), dtype=np.uint8)
     sb = (best_a.astype(np.uint8) << 4) | best_b
