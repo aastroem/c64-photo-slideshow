@@ -136,15 +136,21 @@ python3 convert.py samples/01.jpg --mode fli
 python3 mkdisk.py --dir samples/ --mode afli
 ```
 
-Slides are sized by how well each photo crunches, so a deck that fits in FLI
-can overflow in AFLI — the shipped 18 take 641 blocks as FLI and 683 as AFLI,
-past the 664 a disk holds. `mkdisk.py` refuses to build an over-capacity disk
-rather than quietly shortening the deck; pass **`--fill`** to have it pack as
-many slides as fit instead, dropping from the end (slide order is a priority
-order) and printing every drop:
+Slides are sized by how well each photo crunches, and that is not intuitive:
+the shipped 18 fill **664 of the disk's 664 blocks** in FLI but only **556** in
+AFLI. Multicolor FLI carries a color-RAM byte per cell and a fresh screen byte
+per sliver, while AFLI's neighbouring strips agree on their color pairs often
+enough (see [Attribute clash](#attribute-clash-choosing-each-blocks-colors))
+that the screen data is full of repeats ZX0 eats for breakfast. So a deck that
+fits in one mode may not fit in another, in either direction. `mkdisk.py`
+refuses to build an over-capacity disk rather than quietly shortening the deck;
+pass **`--fill`** to have it pack as many slides as fit instead, dropping from
+the end (slide order is a priority order) and printing every drop. `go.sh`
+passes `--fill` for you, so it always produces a disk and tells you what it
+left off:
 
 ```bash
-python3 mkdisk.py --mode afli --fill     # 17 of 18 slides, 654/664 blocks
+python3 mkdisk.py --fill                 # never refuses; drops the tail if it must
 ```
 
 ## Dithering
