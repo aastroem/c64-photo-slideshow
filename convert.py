@@ -65,16 +65,25 @@ def sidecar_path(photo):
     return photo.with_name(photo.name + ".c64.json")
 
 
-def load_sidecar(photo):
+def raw_sidecar(photo):
+    """The settings the user actually pinned. {} when there is no sidecar."""
     p = sidecar_path(pathlib.Path(photo))
-    if p.exists():
-        return Settings(**json.loads(p.read_text()))
-    return Settings()
+    return json.loads(p.read_text()) if p.exists() else {}
 
 
-def save_sidecar(photo, settings):
-    sidecar_path(pathlib.Path(photo)).write_text(
-        json.dumps(dataclasses.asdict(settings), indent=1))
+def load_sidecar(photo):
+    return Settings(**raw_sidecar(photo))
+
+
+def save_sidecar(photo, settings, keys):
+    """Persist only `keys`: a sidecar records deviations, never defaults.
+
+    Keeping defaults out is what lets mkdisk tell "the user chose fli" from
+    "nobody ever said", so a disk-wide --mode can apply to the latter.
+    """
+    data = {f.name: getattr(settings, f.name)
+            for f in dataclasses.fields(Settings) if f.name in keys}
+    sidecar_path(pathlib.Path(photo)).write_text(json.dumps(data, indent=1))
 
 
 def prepare(photo, s):
@@ -446,14 +455,24 @@ def main():
     ap.add_argument("--crop")
     ap.add_argument("--mode", choices=["fli", "afli", "hires", "hires-mono",
                                        "hires-greys"])
+    ap.add_argument("--default-mode", choices=["fli", "afli", "hires",
+                                               "hires-mono", "hires-greys"],
+                    help="mode to use when the sidecar does not pin one "
+                         "(not persisted; mkdisk passes the disk-wide mode)")
     args = ap.parse_args()
 
     s = load_sidecar(args.photo)
+    pinned = set(raw_sidecar(args.photo))
     for k in ("dither", "strength", "sat", "gamma", "crop", "mode"):
         v = getattr(args, k)
         if v is not None:
             setattr(s, k, v)
-    save_sidecar(args.photo, s)
+            pinned.add(k)
+    save_sidecar(args.photo, s, pinned)
+
+    # after the save, so it never lands in the sidecar
+    if args.default_mode and "mode" not in pinned:
+        s.mode = args.default_mode
 
     out = args.out or args.photo.with_suffix(".fli")
     pv = out.with_name(out.stem + "_preview.png")

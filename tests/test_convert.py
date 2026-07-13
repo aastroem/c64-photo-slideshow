@@ -1,4 +1,5 @@
 import json
+import subprocess
 import sys
 import pathlib
 
@@ -10,6 +11,8 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 import convert
 import preview
 from c64color import PALETTE_RGB
+
+ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 
 def solid(rgb, size=(800, 600)):
@@ -78,14 +81,34 @@ def test_portrait_gets_padded_sides():
     assert (mid == 5).mean() > 0.9
 
 
-def test_sidecar_roundtrip(tmp_path):
+def test_sidecar_records_only_pinned_keys(tmp_path):
     p = tmp_path / "x.jpg"
     solid((10, 200, 30)).save(p)
-    s = convert.Settings(dither="bayer8", strength=0.5, sat=1.2, gamma=0.9)
-    convert.save_sidecar(p, s)
+    s = convert.Settings(sat=1.2)
+    convert.save_sidecar(p, s, {"sat"})
+    assert json.loads((tmp_path / "x.jpg.c64.json").read_text()) == {"sat": 1.2}
     loaded = convert.load_sidecar(p)
-    assert loaded == s
-    assert json.loads((tmp_path / "x.jpg.c64.json").read_text())["dither"] == "bayer8"
+    assert loaded.sat == 1.2
+    assert loaded.dither == convert.Settings().dither   # unpinned -> default
+    assert convert.raw_sidecar(p) == {"sat": 1.2}
+
+
+def test_raw_sidecar_is_empty_when_absent(tmp_path):
+    p = tmp_path / "x.jpg"
+    solid((10, 200, 30)).save(p)
+    assert convert.raw_sidecar(p) == {}
+    assert convert.load_sidecar(p) == convert.Settings()
+
+
+def test_legacy_full_sidecar_still_loads(tmp_path):
+    p = tmp_path / "x.jpg"
+    solid((10, 200, 30)).save(p)
+    (tmp_path / "x.jpg.c64.json").write_text(json.dumps({
+        "dither": "bayer8", "strength": 0.5, "sat": 1.2, "gamma": 0.9,
+        "crop": "0,0", "pad": 0, "mode": "fli"}))
+    assert convert.load_sidecar(p) == convert.Settings(
+        dither="bayer8", strength=0.5, sat=1.2, gamma=0.9)
+    assert convert.raw_sidecar(p)["mode"] == "fli"   # legacy file pins mode
 
 
 def test_hires_mode_packs_flip_container():
@@ -107,3 +130,24 @@ def test_afli_mode_per_line_pairs():
     # screen banks must differ (per-line pairs), unlike plain hires
     assert any((img.screens[b] != img.screens[0]).any() for b in range(1, 8))
     assert len(img.pack()) == 15727
+
+
+def test_default_mode_applies_but_is_not_persisted(tmp_path):
+    p = tmp_path / "x.jpg"
+    solid((10, 200, 30)).save(p)
+    out = tmp_path / "x.fli"
+    subprocess.run([sys.executable, str(ROOT / "convert.py"), str(p),
+                    "-o", str(out), "--default-mode", "afli"],
+                   check=True, cwd=ROOT)
+    assert out.exists()
+    assert convert.raw_sidecar(p) == {}          # nothing pinned, nothing written
+
+
+def test_explicit_mode_is_persisted_and_beats_default(tmp_path):
+    p = tmp_path / "x.jpg"
+    solid((10, 200, 30)).save(p)
+    out = tmp_path / "x.fli"
+    subprocess.run([sys.executable, str(ROOT / "convert.py"), str(p),
+                    "-o", str(out), "--mode", "hires",
+                    "--default-mode", "afli"], check=True, cwd=ROOT)
+    assert convert.raw_sidecar(p) == {"mode": "hires"}
