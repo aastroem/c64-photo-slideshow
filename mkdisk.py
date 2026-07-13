@@ -44,6 +44,15 @@ def effective_mode(raw, default):
     return raw.get("mode", default)
 
 
+def check_capacity(used, detail, mode):
+    """Refuse to build an over-full disk -- never silently drop slides."""
+    if used > MAX_BLOCKS:
+        raise SystemExit(
+            f"disk over capacity: {used}/{MAX_BLOCKS} blocks ({detail}).\n"
+            f"Slides are in '{mode}' mode; hires modes compress worse than "
+            f"multicolor fli. Use fewer photos, or a different --mode.")
+
+
 def shot_time(photo):
     try:
         ex = Image.open(photo).getexif()
@@ -203,6 +212,14 @@ def main():
     main_end = (main_prg[0] | main_prg[1] << 8) + len(main_prg) - 2
     assert main_end < 0x4000, f"MAIN ends at ${main_end:04x}, must stay below $4000"
 
+    b_boot = blocks(BUILD / "boot.prg")
+    b_main = blocks(BUILD / "main.prg")
+    used = b_boot + b_main + sum(blocks(z) for z in packed)
+    detail = (f"boot {b_boot}, main {b_main}, "
+              f"pics {'+'.join(str(blocks(z)) for z in packed)}")
+    print(f"\nbuild/slideshow.d64: {used}/{MAX_BLOCKS} blocks ({detail})")
+    check_capacity(used, detail, default_mode)
+
     d64 = BUILD / "slideshow.d64"
     d64.unlink(missing_ok=True)
     cmd = ["c1541", "-format", "ditherdeck 64,26", "d64", str(d64),
@@ -211,14 +228,6 @@ def main():
     for i, z in enumerate(packed, 1):
         cmd += ["-write", str(z), f"{i:02d}"]
     subprocess.run(cmd, check=True, capture_output=True, cwd=HERE)
-
-    used = blocks(BUILD / "boot.prg") + blocks(BUILD / "main.prg") \
-        + sum(blocks(z) for z in packed)
-    per_pic = "+".join(str(blocks(z)) for z in packed)
-    print(f"\nbuild/slideshow.d64: {used}/{MAX_BLOCKS} blocks "
-          f"(boot {blocks(BUILD / 'boot.prg')}, main {blocks(BUILD / 'main.prg')}, "
-          f"pics {per_pic})")
-    assert used <= MAX_BLOCKS, "disk over capacity"
 
     import d64tog64
     d64tog64.convert(d64, BUILD / "slideshow.g64")
