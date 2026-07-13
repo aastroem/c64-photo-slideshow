@@ -178,6 +178,14 @@ def convert_afli(photo, s):
         for c in range(40):
             strip = near[y, c*8:c*8+8]
             pairs[y, c] = np.bincount(strip, minlength=16).argsort()[-2:]
+    # Lines 197-199 (rasters 248-250) sit past the badline window, so the VIC
+    # redisplays line 196's screen colors there -- and it resolves *their*
+    # bitmap bits against that pair, which would invert pixels wherever the
+    # light/dark order disagrees. Pick one pair for lines 196-199 jointly, as
+    # the FLI converter does (convert.py), so bit 1 always means the same ink.
+    for c in range(40):
+        strip = near[196:200, c*8:c*8+8].ravel()
+        pairs[196:200, c] = np.bincount(strip, minlength=16).argsort()[-2:]
     pairs[:, :VIS0] = 0
     pairs[:, VIS0 + VIS_COLS:] = 0
     out = _dizzy(lin, lambda y, x: pairs[y, x//8], s.strength)

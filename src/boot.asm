@@ -10,6 +10,9 @@ RESIDENT = $0200                ; where the resident blob is linked to run
 MAIN     = $0900
 INSTALL  = install
 LOADRAW  = loadraw
+ERR_CODE = $c3e8                ; must stay clear of the resident -- MAIN's
+                                ; retry path re-enters the loader after this
+                                ; write (see err_code in main.asm)
 !if LOADRAW != RESIDENT { !error "loader was rebuilt with a different RESIDENT address; update RESIDENT + memory map" }
 !if INSTALL != MAIN { !error "loader was rebuilt with a different INSTALL address; boot expects $0900" }
 
@@ -48,7 +51,7 @@ start:
         bcs error
         jmp MAIN
 
-error:  sta $0400               ; error code readable at $0400
+error:  sta ERR_CODE            ; error code readable there
         lda #7
         sta $d020               ; yellow border: load error
         jmp *
@@ -66,3 +69,10 @@ resident_blob
 resident_end
         !if resident_end - resident_blob > $300 { !error "resident copy loop assumes <= 3 pages" }
         !if resident_end - resident_blob <= $200 { !error "copy loop expects > 2 pages now" }
+        ; the error byte must not land inside the resident: MAIN writes it and
+        ; then retries the load, which would run a corrupted decompressor
+        !if ERR_CODE >= RESIDENT {
+          !if ERR_CODE < RESIDENT + (resident_end - resident_blob) {
+            !error "ERR_CODE overlaps the resident loader"
+          }
+        }

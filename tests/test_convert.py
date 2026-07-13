@@ -148,6 +148,26 @@ def test_afli_mode_per_line_pairs():
     assert len(img.pack()) == 15727
 
 
+def test_afli_tail_lines_share_screen_colors():
+    # rasters 248-250 redisplay line 196's screen colors, and resolve lines
+    # 197-199's bitmap bits against that pair -- so the pair must be shared,
+    # or those pixels invert wherever the light/dark order disagrees
+    import modes
+    import numpy as np
+    rng = np.random.default_rng(3)
+    noise = rng.integers(0, 256, (600, 900, 3), dtype=np.uint8)
+    img, out = modes.convert_afli(Image.fromarray(noise), convert.Settings())
+    for bank in (5, 6, 7):
+        assert (img.screens[bank, 24] == img.screens[4, 24]).all()
+    # what the VIC actually paints on lines 196-199 == what the converter meant
+    for y in range(196, 200):
+        for c in range(modes.VIS0, modes.VIS0 + modes.VIS_COLS):
+            hi, lo = img.screens[4, 24, c] >> 4, img.screens[4, 24, c] & 15
+            bits = np.unpackbits(np.uint8([img.bitmap[24, c, y % 8]]))
+            shown = np.where(bits == 1, hi, lo)
+            assert (shown == out[y, c*8:c*8+8]).all(), f"line {y} cell {c}"
+
+
 def test_default_mode_applies_but_is_not_persisted(tmp_path):
     p = tmp_path / "x.jpg"
     solid((10, 200, 30)).save(p)

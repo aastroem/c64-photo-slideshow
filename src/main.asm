@@ -10,6 +10,11 @@
 LOADCOMPD = loadcompd
 dis_lo  = $c400                 ; runtime-generated dissolve order
 dis_hi  = $c800
+; Load-error diagnostics. NOT in low memory: $0200-$0406 is the live Krill
+; resident (ZX0 decompressor included), and the error path retries the load,
+; so scribbling there would re-enter a corrupted decompressor.
+err_code = $c3e8                ; free gap between color staging and dis_lo
+err_pic  = $c3e9
 
 !ifndef NUM_PICS { NUM_PICS = 10 }
 SHOW_FRAMES = 400               ; ~8 s per slide
@@ -67,9 +72,9 @@ load_retry:
         ldy #>name
         jsr LOADCOMPD           ; ZX0-crunched pics, depacked on the fly
         bcc load_ok
-        sta $0401               ; loader error code (diagnostics)
+        sta err_code            ; loader error code (diagnostics)
         lda picnum
-        sta $0402               ; failing slide index
+        sta err_pic             ; failing slide index
         inc $d020               ; error: flash border, retry forever
         jmp load_retry
 load_ok:
