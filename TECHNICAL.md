@@ -19,8 +19,8 @@ one being revealed. Treated as a deliberate mode-morph.
 The display IRQ costs ~2/3 CPU
 during loads, which just makes them slower — Krill v194 tolerates the long
 handler fine. SID music, PAL only. Built by `mkdisk.py`
-(`--dir photos/kenneth`; order = 01.* first, then EXIF time; portraits
-padded with `pad` sidecar color).
+(`--dir samples` by default; order = numbered files first in number order,
+then EXIF time; portraits padded with `pad` sidecar color).
 `src/fade.asm` (luminance fade, tested) is kept but not linked. Loader zp is
 $e0-$ef with ZX0 resident ($0200-$0406) — music zp moved to $50-$55, display
 savesp $57.

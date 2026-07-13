@@ -3,9 +3,11 @@
 
   python3 mkdisk.py [--dir photos/kenneth] [--force]
 
-Takes 2-18 photos from the directory (default photos/). Slide order: a file
-named 01.* comes first, the rest sort by EXIF capture time (file mtime when
-absent). Pics are ZX0-crunched (Krill loadcompd). Boot: LOAD"*",8,1 + RUN.
+Takes 2-18 photos from the directory (default samples/, the curated deck that
+ships with the project; point --dir at your own folder for anything else).
+Slide order: numbered files (01.jpg, 02.jpg, ...) run in number order and come
+first, the rest sort by EXIF capture time (file mtime when absent). Pics are
+ZX0-crunched (Krill loadcompd). Boot: LOAD"*",8,1 + RUN.
 Verify:  ./run_emulator.sh
 """
 
@@ -66,11 +68,15 @@ def shot_time(photo):
 
 
 def ordered_photos(d):
+    """Numbered files (01.jpg, 02.jpg, ...) run in number order and come first;
+    everything else follows in EXIF shot order. A curated deck names its files,
+    a dumped camera folder does not, and both get the order they expect."""
     photos = [p for p in d.iterdir()
               if p.suffix.lower() in EXTS and not p.name.startswith(".")]
-    pinned = [p for p in photos if p.stem == "01"]
-    rest = sorted((p for p in photos if p.stem != "01"), key=shot_time)
-    return pinned + rest
+    numbered = sorted((p for p in photos if p.stem.isdigit()),
+                      key=lambda p: int(p.stem))
+    rest = sorted((p for p in photos if not p.stem.isdigit()), key=shot_time)
+    return numbered + rest
 
 
 def is_portrait(p):
@@ -129,7 +135,7 @@ def composite_pair(a, b, out):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--dir", type=pathlib.Path, default=HERE / "photos")
+    ap.add_argument("--dir", type=pathlib.Path, default=HERE / "samples")
     ap.add_argument("--force", action="store_true", help="reconvert all photos")
     ap.add_argument("--shuffle", action="store_true",
                     help="random slide order (a pinned 01.* stays first)")

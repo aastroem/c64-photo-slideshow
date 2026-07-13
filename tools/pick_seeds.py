@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Score candidate picsum seeds for FLI-friendliness and build a contact sheet.
 
-Dev tool, not part of the build: it *informs* the SEEDS list in
-fetch_samples.py, a human still picks the final ten from the contact sheet.
+Dev tool, not part of the build. It scores picsum seeds; the shipped deck in
+samples/ was curated the same way (score, then a human picks from the sheet),
+so this stays useful for scouting new candidates.
 
     python3 tools/pick_seeds.py            # scan, score, write the sheet
     open build/seedscan/index.html

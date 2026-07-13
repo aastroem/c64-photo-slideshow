@@ -1,0 +1,111 @@
+Sample photos — all from Wikimedia Commons, openly licensed.
+Slide order follows the numbered filenames.
+
+01.jpg  (c200)
+  title:   Mo i Rana med havmannen 02 kopi.jpg
+  author:  HelgelandFakta
+  license: CC BY-SA 4.0
+  source:  https://commons.wikimedia.org/wiki/File:Mo_i_Rana_med_havmannen_02_kopi.jpg
+
+02.jpg  (c111)
+  title:   NSB Di 4 Nattog Saltfjellet.jpg
+  author:  <a href="//commons.wikimedia.org/wiki/User:Kabelleger" title="User:Kabelleger">Kabelleger / David Gubler</a>
+  license: CC BY-SA 4.0
+  source:  https://commons.wikimedia.org/wiki/File:NSB_Di_4_Nattog_Saltfjellet.jpg
+
+03.jpg  (c93)
+  title:   SJN Di 4 Finneidfjord - Mo i Rana.jpg
+  author:  <a href="//commons.wikimedia.org/wiki/User:Kabelleger" title="User:Kabelleger">Kabelleger / David Gubler</a>
+  license: CC BY-SA 4.0
+  source:  https://commons.wikimedia.org/wiki/File:SJN_Di_4_Finneidfjord_-_Mo_i_Rana.jpg
+
+04.jpg  (c214)
+  title:   Ranfjorden, Movika, Mo i Rana havn harbour, Langneset, Mo i Rana, Norway - Havmannen sculpture by A. Gormely - 2017-10-09 - distorted panorama.jpg
+  author:  Wolfmann
+  license: CC BY-SA 4.0
+  source:  https://commons.wikimedia.org/wiki/File:Ranfjorden,_Movika,_Mo_i_Rana_havn_harbour,_Langneset,_Mo_i_Rana,_Norway_-_Havmannen_sculpture_by_A._Gormely_-_2017-10-09_-_distorted_panorama.jpg
+
+05.jpg  (c87)
+  title:   Vigeland Sculpture Park - Granite sculptures on the staircase, Oslo, Norway.jpg
+  author:  <a href="//commons.wikimedia.org/wiki/User:Espandero" title="User:Espandero">Christian David</a>
+  license: CC BY-SA 4.0
+  source:  https://commons.wikimedia.org/wiki/File:Vigeland_Sculpture_Park_-_Granite_sculptures_on_the_staircase,_Oslo,_Norway.jpg
+
+06.jpg  (c69)
+  title:   Oslo harbour colors modified.jpg
+  author:  <a href="//commons.wikimedia.org/wiki/User:Quistnix" title="User:Quistnix">Quistnix</a>
+  license: CC BY-SA 3.0
+  source:  https://commons.wikimedia.org/wiki/File:Oslo_harbour_colors_modified.jpg
+
+07.jpg  (c71)
+  title:   Oslo Rådhus - Oslo City Hall - Oslo, Norway 2020-09-16.jpg
+  author:  <a href="//commons.wikimedia.org/wiki/User:Ryan_Hodnett" title="User:Ryan Hodnett">Ryan Hodnett</a>
+  license: CC BY-SA 4.0
+  source:  https://commons.wikimedia.org/wiki/File:Oslo_R%C3%A5dhus_-_Oslo_City_Hall_-_Oslo,_Norway_2020-09-16.jpg
+
+08.jpg  (c74)
+  title:   Royal Palace Slottet Oslo Norway (2022.04.21).jpg
+  author:  <a href="//commons.wikimedia.org/wiki/User:Macwhale" title="User:Macwhale">Geir Hval (www.MacWhale.eu)</a>
+  license: CC BY-SA 4.0
+  source:  https://commons.wikimedia.org/wiki/File:Royal_Palace_Slottet_Oslo_Norway_(2022.04.21).jpg
+
+09.jpg  (c75)
+  title:   New Opera in Oslo.jpg
+  author:  <a href="//commons.wikimedia.org/wiki/User:Pudelek" title="User:Pudelek">Pudelek</a> (Marcin Szala)
+  license: CC BY-SA 4.0
+  source:  https://commons.wikimedia.org/wiki/File:New_Opera_in_Oslo.jpg
+
+10.jpg  (c83)
+  title:   Coucher de soleil sur le fjord d'Oslo.jpg
+  author:  <a href="//commons.wikimedia.org/wiki/User:Fawaz.tairou" title="User:Fawaz.tairou">Fawaz.tairou</a>
+  license: CC BY-SA 4.0
+  source:  https://commons.wikimedia.org/wiki/File:Coucher_de_soleil_sur_le_fjord_d%27Oslo.jpg
+
+11.jpg  (c73)
+  title:   Royal Palace Slottet Oslo Norway (2023.04.28).jpg
+  author:  <a href="//commons.wikimedia.org/wiki/User:Macwhale" title="User:Macwhale">Geir Hval (www.MacWhale.eu)</a>
+  license: CC BY-SA 4.0
+  source:  https://commons.wikimedia.org/wiki/File:Royal_Palace_Slottet_Oslo_Norway_(2023.04.28).jpg
+
+12.jpg  (c48)
+  title:   View towards Segla from ridge at Hesten in Senja, Troms og Finnmark, Norway, 2022 August.jpg
+  author:  <a href="//commons.wikimedia.org/wiki/User:Ximonic" title="User:Ximonic">Ximonic</a> (Simo Räsänen)
+  license: CC BY-SA 4.0
+  source:  https://commons.wikimedia.org/wiki/File:View_towards_Segla_from_ridge_at_Hesten_in_Senja,_Troms_og_Finnmark,_Norway,_2022_August.jpg
+
+13.jpg  (c35)
+  title:   Fjord coast landscape from east coast of Storfjorden, Lyngen fjord, 2012 June.jpg
+  author:  <a href="//commons.wikimedia.org/wiki/User:Ximonic" title="User:Ximonic">Ximonic (Simo Räsänen)</a>
+  license: CC BY-SA 3.0
+  source:  https://commons.wikimedia.org/wiki/File:Fjord_coast_landscape_from_east_coast_of_Storfjorden,_Lyngen_fjord,_2012_June.jpg
+
+14.jpg  (c50)
+  title:   Kaupanger stavkyrkje 2018 take 3.jpg
+  author:  <a href="//commons.wikimedia.org/wiki/User:Bep" title="User:Bep">Bjørn Erik Pedersen</a>
+  license: CC BY-SA 4.0
+  source:  https://commons.wikimedia.org/wiki/File:Kaupanger_stavkyrkje_2018_take_3.jpg
+
+15.jpg  (c15)
+  title:   Houses of Reine by Gravdalsbukta, Moskenes, Nordland, Norway, 2022 June.jpg
+  author:  <a href="//commons.wikimedia.org/wiki/User:Ximonic" title="User:Ximonic">Ximonic</a> (Simo Räsänen)
+  license: CC BY-SA 4.0
+  source:  https://commons.wikimedia.org/wiki/File:Houses_of_Reine_by_Gravdalsbukta,_Moskenes,_Nordland,_Norway,_2022_June.jpg
+
+16.jpg  (c47)
+  title:   Tebbeltuva behind Ersfjorden, Senja, Troms og Finnmark, Norway, 2017 April.jpg
+  author:  <a href="//commons.wikimedia.org/wiki/User:Ximonic" title="User:Ximonic">Ximonic (Simo Räsänen)</a>
+  license: CC BY-SA 3.0
+  source:  https://commons.wikimedia.org/wiki/File:Tebbeltuva_behind_Ersfjorden,_Senja,_Troms_og_Finnmark,_Norway,_2017_April.jpg
+
+17.jpg  (c41)
+  title:   Atlantic Ocean Road (177685745).jpeg
+  author:  <div class="fn value">
+<a rel="nofollow" class="external text" href="https://500px.com/Andrix2K">Andrei R</a></div>
+  license: CC BY 3.0
+  source:  https://commons.wikimedia.org/wiki/File:Atlantic_Ocean_Road_(177685745).jpeg
+
+18.jpg  (c19)
+  title:   Bryggen-Bergen-April-2011 01.jpg
+  author:  Acediscovery
+  license: CC BY 4.0
+  source:  https://commons.wikimedia.org/wiki/File:Bryggen-Bergen-April-2011_01.jpg

@@ -37,7 +37,7 @@ render your own with `make_demo_gif.py`).*
 ## Quick start
 
 ```bash
-./go.sh                 # sample photos -> disk image -> VICE
+./go.sh                 # the curated Norway deck (samples/) -> disk image -> VICE
 ./go.sh my-photos/      # your own directory of 2-18 images
 ```
 
@@ -123,8 +123,8 @@ sidecar pins a mode (because you ran `convert.py --mode ...` on it) keeps
 that mode, so "all AFLI except the first slide" is just:
 
 ```bash
-python3 convert.py photos/sample01.jpg --mode fli
-python3 mkdisk.py --dir photos/ --mode afli
+python3 convert.py samples/01.jpg --mode fli
+python3 mkdisk.py --dir samples/ --mode afli
 ```
 
 ## Dithering
@@ -229,8 +229,8 @@ hard-won hardware facts, are in [TECHNICAL.md](TECHNICAL.md).
   [Liam Appelbe](https://liamappelbe.medium.com/dizzy-dithering-2ae76dbceba1);
   **Riemersma dithering** by
   [Thiadmer Riemersma](https://www.compuphase.com/riemer.htm)
-- Sample photos served by [picsum.photos](https://picsum.photos)
-  (Unsplash-licensed images)
+- Sample photos from [Wikimedia Commons](https://commons.wikimedia.org), CC0 /
+  CC BY / CC BY-SA — per-image credits in [`samples/SOURCES.txt`](samples/SOURCES.txt)
 - Built by [aastroem](https://github.com/aastroem) with
   [Claude](https://claude.com) (Anthropic's Claude Code) doing the heavy
   lifting — from the OkLab converter to the cycle-exact FLI displayer
