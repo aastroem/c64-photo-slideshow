@@ -110,6 +110,9 @@ an odd portrait out gets side bars as before.
 - `--strength`, `--sat`, `--gamma` — dither amount, saturation, gamma
 - `--crop dx,dy` — shift the crop window (−1..1)
 - `--pad 0-15` — side-bar color for portrait photos (default 0, black)
+- `--coherence 0..1` — hires/AFLI: how hard neighbouring blocks are pushed to
+  agree on their 2-color pair (default 0.2, `0` = each block decides alone).
+  See [Attribute clash](#attribute-clash-choosing-each-blocks-colors)
 - `--mode fli|afli|hires|hires-mono|hires-greys` — per-slide display mode:
   multicolor FLI (default, smoothest color and the safest choice for an
   arbitrary photo), **AFLI** (hires FLI: 320-wide detail *and* per-scanline
@@ -191,6 +194,48 @@ favors FLI.** Modes mix freely within one deck, so pick per photo.
 All modes quantize in OkLab against Pepto's measured palette, honor each
 sliver's 4-color constraint, and never dither pixels that already sit
 exactly on a palette color.
+
+## Attribute clash: choosing each block's colors
+
+Every C64 block can show only a fixed number of colors — two per **8×8 cell**
+in hires, two per **8×1 strip** in AFLI, four per **4×1 sliver** in FLI. Which
+two (or four) is a choice the converter makes for every block on the screen,
+and it is where most of the picture quality actually lives. Two rules:
+
+**Score a pair by the error it leaves, not by counting colors.** The obvious
+heuristic — take the two most *common* colors in the block — is a poor one: the
+most frequent colors are rarely the two that best reconstruct the block once
+it is dithered. So every candidate pair is scored by
+
+```
+E(a, b) = Σ over the block's pixels of min( d(px, a), d(px, b) )
+```
+
+and the minimum wins. The payoff is largest where a block holds the most
+pixels: an 8×8 hires cell has 64, and the vote was throwing away enough of them
+to turn shop signs into mush. An 8×1 AFLI strip has only 8, where the two
+commonest colors usually *were* the two best — so AFLI barely moves. The
+`hires-greys` variant gained the most of all: it used to pick a ladder rung from
+the cell's *mean* luminance, and with only 5 rungs, neighbouring cells could
+land a whole rung apart.
+
+**Let neighbouring blocks agree.** Each block choosing alone is what puts the
+seams on the 8×8 grid. So the pairs are solved as a Markov random field —
+minimise the dither error *plus* a penalty for disagreeing with the adjacent
+blocks' pairs (iterated conditional modes, checkerboard sweeps) — and a
+gradient then holds one pair across many blocks while the dither carries it. An
+edge still breaks to a new pair, because there the error term dwarfs the
+penalty. AFLI weights vertical agreement 2×: a pair that flips from line to
+line makes the image shimmer in bands, which reads worse than a column seam.
+
+`--coherence` (default 0.2, `0` disables) sets that penalty. It steers **which
+colors a block picks — never a pixel**; nothing is blurred or filtered.
+
+FLI has the same problem one level up: its per-cell color-RAM entry is shared by
+all 8 lines of the cell, and the sliver pairs are chosen against it, so the two
+are coupled. They are now solved by **alternating minimisation** — pick color
+RAM, solve the pairs, re-pick color RAM against the error those pairs actually
+leave, repeat — rather than fixing color RAM up front and living with it.
 
 ## Real hardware
 

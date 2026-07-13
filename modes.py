@@ -35,6 +35,105 @@ GREY_LADDER = [0, 11, 12, 15, 1]
 _pal_ok = c64color.palette_oklab()
 _pal_lin = c64color.palette_linear()
 
+# ---- block color-pair selection -------------------------------------------
+# A hires block (8x8 cell, or an 8x1 strip in AFLI) can show exactly two
+# colors. Picking them by majority vote per block -- as this file used to --
+# throws away detail (the two most *common* colors are rarely the two that
+# best reconstruct the block under dithering) and, because each block decides
+# alone, neighbouring blocks disagree and the seams show up on the block grid.
+#
+# So: score every pair by the error it actually leaves after dithering,
+#   E(a,b) = sum over the block's pixels of min(d(px,a), d(px,b)),
+# which is what the FLI path in convert.py already does; then let neighbours
+# talk to each other by minimising E plus a penalty for disagreeing with the
+# adjacent blocks' pairs (a Markov random field, solved by iterated
+# conditional modes). A gradient then holds one pair across many blocks and
+# the dither carries it, while an edge still breaks to a new pair because
+# there the error term outweighs the coherence penalty.
+_PAIRS = [(a, b) for a in range(16) for b in range(a, 16)]
+_NPAIR = len(_PAIRS)                                   # 136
+_PAIR_HI = np.array([p[1] for p in _PAIRS])
+_PAIR_LO = np.array([p[0] for p in _PAIRS])
+# How unlike are two pairs: 0 identical, 1 share a color, 2 disjoint. Counted
+# as multisets, not sets -- a flat block's pair is (a, a), and set() would
+# collapse it and score it 1 against *itself*, so the coherence term would
+# push flat regions (sky, water) apart instead of holding them together.
+def _pdist(p, q):
+    common = sum(min(p.count(v), q.count(v)) for v in set(p) | set(q))
+    return 2 - common
+
+
+_PDIST = np.array([[_pdist(p, q) for q in _PAIRS] for p in _PAIRS],
+                  dtype=np.float64)
+
+
+def _pair_energy(Dblocks):
+    """Dblocks: (..., npix, 16) distances -> (..., 136) post-dither error."""
+    shape = Dblocks.shape[:-2]
+    E = np.empty(shape + (_NPAIR,))
+    for i, (a, b) in enumerate(_PAIRS):
+        E[..., i] = np.minimum(Dblocks[..., a], Dblocks[..., b]).sum(-1)
+    return E
+
+
+def _icm(E, lam_h, lam_v, sweeps=6, pdist=None):
+    """Minimise E + lam * sum_neighbours PDIST over a (R,C) grid of blocks.
+
+    Checkerboard (not all-at-once) updates: a Jacobi sweep can oscillate
+    between two equally good configurations and never settle.
+    """
+    pdist = _PDIST if pdist is None else pdist
+    p = E.argmin(-1).astype(np.int64)
+    if lam_h <= 0 and lam_v <= 0:
+        return p
+    R, C = p.shape
+    rr, cc = np.meshgrid(np.arange(R), np.arange(C), indexing="ij")
+    for _ in range(sweeps):
+        changed = 0
+        for parity in (0, 1):
+            cost = E.copy()
+            if lam_v > 0:
+                cost[1:] += lam_v * pdist[:, p[:-1]].transpose(1, 2, 0)
+                cost[:-1] += lam_v * pdist[:, p[1:]].transpose(1, 2, 0)
+            if lam_h > 0:
+                cost[:, 1:] += lam_h * pdist[:, p[:, :-1]].transpose(1, 2, 0)
+                cost[:, :-1] += lam_h * pdist[:, p[:, 1:]].transpose(1, 2, 0)
+            new = cost.argmin(-1)
+            m = ((rr + cc) % 2 == parity) & (new != p)
+            changed += int(m.sum())
+            p[m] = new[m]
+        if not changed:
+            break
+    return p
+
+
+def _solve_pairs(Dblocks, coherence, lam_v_scale=1.0, allowed=None):
+    """(..., npix, 16) distances -> (R, C, 2) [lo, hi] color pairs.
+
+    allowed: restrict the search to these indices into _PAIRS (the grey
+    variants may only use the ladder, not the full palette).
+    """
+    E = _pair_energy(Dblocks)
+    pdist = _PDIST
+    if allowed is not None:
+        keep = np.asarray(allowed)
+        E = E[..., keep]
+        pdist = _PDIST[np.ix_(keep, keep)]   # distances in the subset's own space
+    lam = 0.0
+    if coherence > 0:
+        # scale the penalty to the image's own error magnitude, so `coherence`
+        # means the same thing on a flat photo and a busy one
+        lam = coherence * float(np.median(E.min(-1)))
+    idx = _icm(E, lam, lam * lam_v_scale, pdist=pdist)
+    if allowed is not None:
+        idx = np.asarray(allowed)[idx]
+    return np.stack([_PAIR_LO[idx], _PAIR_HI[idx]], axis=-1)
+
+
+# the grey variants may only draw from the luminance ladder
+_LADDER_PAIRS = [i for i, (a, b) in enumerate(_PAIRS)
+                 if a in GREY_LADDER and b in GREY_LADDER and a != b]
+
 
 def _prepare(photo, s):
     img = ImageOps.exif_transpose(photo.convert("RGB"))
@@ -115,27 +214,18 @@ def _dizzy(lin, cand_for, strength, seed=0xC64):
     return out
 
 
-def _cell_pairs(lab, variant):
+def _cell_pairs(lab, variant, coherence=0.0):
     if variant == "hires-mono":
         return np.tile(np.array([0, 1]), (25, 40, 1))
-    if variant == "hires-greys":
-        pal_L = _pal_ok[GREY_LADDER, 0]
-        pairs = np.zeros((25, 40, 2), dtype=int)
-        Lch = lab[..., 0]
-        for r in range(25):
-            for c in range(40):
-                m = Lch[r*8:r*8+8, c*8:c*8+8].mean()
-                i = int(np.clip(np.searchsorted(pal_L, m), 1, len(GREY_LADDER)-1))
-                pairs[r, c] = (GREY_LADDER[i-1], GREY_LADDER[i])
-        return pairs
     D = ((lab[:, :, None, :] - _pal_ok[None, None, :, :])**2).sum(-1)
-    near = D.argmin(-1)
-    pairs = np.zeros((25, 40, 2), dtype=int)
-    for r in range(25):
-        for c in range(40):
-            block = near[r*8:r*8+8, c*8:c*8+8].ravel()
-            pairs[r, c] = np.bincount(block, minlength=16).argsort()[-2:]
-    return pairs
+    cells = (D.reshape(25, 8, 40, 8, 16)      # (rows, y, cols, x, color)
+              .transpose(0, 2, 1, 3, 4)
+              .reshape(25, 40, 64, 16))       # 64 px per 8x8 cell
+    # the grey variant is the same problem on a restricted palette: picking the
+    # ladder rung from a cell's *mean* luminance is the same blind per-cell
+    # heuristic, and banded for the same reason
+    allowed = _LADDER_PAIRS if variant == "hires-greys" else None
+    return _solve_pairs(cells, coherence, allowed=allowed)
 
 
 def convert_hires(photo, s, variant="hires"):
@@ -143,7 +233,7 @@ def convert_hires(photo, s, variant="hires"):
     canvas = _prepare(photo, s)
     lin = c64color.srgb_to_linear(canvas)
     lab = c64color.linear_to_oklab(lin)
-    pairs = _cell_pairs(lab, variant)
+    pairs = _cell_pairs(lab, variant, s.coherence)
     pairs[:, :VIS0] = 0
     pairs[:, VIS0 + VIS_COLS:] = 0
     out = _dizzy(lin, lambda y, x: pairs[y//8, x//8], s.strength)
@@ -172,20 +262,23 @@ def convert_afli(photo, s):
     lin = c64color.srgb_to_linear(canvas)
     lab = c64color.linear_to_oklab(lin)
     D = ((lab[:, :, None, :] - _pal_ok[None, None, :, :])**2).sum(-1)
-    near = D.argmin(-1)
-    pairs = np.zeros((H, 40, 2), dtype=int)
-    for y in range(H):
-        for c in range(40):
-            strip = near[y, c*8:c*8+8]
-            pairs[y, c] = np.bincount(strip, minlength=16).argsort()[-2:]
+    strips = D.reshape(H, 40, 8, 16)          # 8 px per 8x1 strip
+    E = _pair_energy(strips)                  # (200, 40, 136)
+
     # Lines 197-199 (rasters 248-250) sit past the badline window, so the VIC
     # redisplays line 196's screen colors there -- and it resolves *their*
     # bitmap bits against that pair, which would invert pixels wherever the
-    # light/dark order disagrees. Pick one pair for lines 196-199 jointly, as
-    # the FLI converter does (convert.py), so bit 1 always means the same ink.
-    for c in range(40):
-        strip = near[196:200, c*8:c*8+8].ravel()
-        pairs[196:200, c] = np.bincount(strip, minlength=16).argsort()[-2:]
+    # light/dark order disagrees. Score lines 196-199 as one block, as the FLI
+    # converter does (convert.py), so bit 1 always means the same ink.
+    E[196:200] = E[196:200].sum(0) / 4.0
+
+    lam = s.coherence * float(np.median(E.min(-1))) if s.coherence > 0 else 0.0
+    # vertical coherence matters more here: a pair that flips line to line
+    # makes the image shimmer in horizontal bands, which reads worse than the
+    # 8-pixel column seams that horizontal coherence fixes
+    idx = _icm(E, lam, lam * 2.0)
+    idx[196:200] = idx[196]                   # one screen byte for the tail
+    pairs = np.stack([_PAIR_LO[idx], _PAIR_HI[idx]], axis=-1)
     pairs[:, :VIS0] = 0
     pairs[:, VIS0 + VIS_COLS:] = 0
     out = _dizzy(lin, lambda y, x: pairs[y, x//8], s.strength)

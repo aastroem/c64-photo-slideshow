@@ -7,8 +7,11 @@
 Two-pass conversion: pass 1 picks the FLI attributes (per-cell color-RAM
 color, per-4x1-sliver screen color pair) from undithered perceptual (OkLab)
 distances; pass 2 dithers each pixel against the 4 colors its sliver can
-actually show. Settings persist in a `<photo>.c64.json` sidecar so each
-photo keeps its own tuning.
+actually show. The two attributes are coupled -- color RAM is shared by all 8
+lines of a cell, and the sliver pairs are chosen against it -- so pass 1
+alternates between them instead of fixing color RAM up front (pick_attributes).
+Settings persist in a `<photo>.c64.json` sidecar so each photo keeps its own
+tuning; see modes.py for the same problem in the hires/AFLI paths.
 """
 
 import argparse
@@ -59,6 +62,10 @@ class Settings:
     crop: str = "0,0"       # fractional offset of the crop window, -1..1
     pad: int = 0            # C64 color for the side bars on portrait photos
     mode: str = "fli"       # fli | afli | hires | hires-mono | hires-greys
+    coherence: float = 0.2  # hires/afli: how hard neighbouring blocks are
+                            # pushed to agree on their color pair (0 = off).
+                            # Nothing is blurred -- this only steers which of
+                            # the 16 colors each block picks, never a pixel.
 
 
 def sidecar_path(photo):
@@ -115,32 +122,9 @@ def prepare(photo, s):
     return img.filter(ImageFilter.UnsharpMask(radius=1, percent=60, threshold=2))
 
 
-def pick_attributes(lab):
-    """Pass 1: per-cell color-RAM color and per-sliver screen color pairs.
-
-    lab: (200,160,3) OkLab image. Returns (screens, colorram, D) where
-    D is the per-pixel distance-squared to each of the 16 colors.
-    """
-    pal = c64color.palette_oklab()
-    d = lab[:, :, None, :] - pal[None, None, :, :]
-    D = (d * d).sum(-1)                                   # (200,160,16)
-    near = np.argmin(D, axis=-1)
-
-    colorram = np.zeros((fli.ROWS, fli.COLS), dtype=np.uint8)
-    for r in range(fli.ROWS):
-        for c in range(fli.VIS0, fli.COLS):
-            block = near[r * 8:r * 8 + 8, c * 4:c * 4 + 4].ravel()
-            nonblack = block[block != 0]
-            if len(nonblack):
-                colorram[r, c] = np.bincount(nonblack, minlength=16).argmax()
-
-    # sliver-wise: (200, 40, 4, 16) distances
-    Ds = D.reshape(H, fli.COLS, 4, 16)
-    cram_idx = np.repeat(colorram[np.newaxis, :, :], 8, axis=0).reshape(-1, fli.COLS)
-    # base = min(black, colorram) per pixel of each sliver
-    base = np.minimum(Ds[..., 0],
-                      np.take_along_axis(
-                          Ds, cram_idx[:, :, None, None].astype(np.int64), 3)[..., 0])
+def _sliver_pairs(Ds, base):
+    """Best screen-color pair per sliver, given what black+colorram already
+    cover (base). Returns (best_a, best_b) as (200, COLS) arrays."""
     best_err = np.full((H, fli.COLS), np.inf)
     best_a = np.zeros((H, fli.COLS), dtype=np.uint8)
     best_b = np.zeros((H, fli.COLS), dtype=np.uint8)
@@ -172,6 +156,63 @@ def pick_attributes(lab):
     for y in range(196, 200):
         best_a[y] = tail_a
         best_b[y] = tail_b
+    return best_a, best_b
+
+
+def _base_cost(Ds, colorram):
+    """Per-pixel cost of the two colors every sliver gets for free: the black
+    background, and the cell's color-RAM entry."""
+    cram = np.repeat(colorram[np.newaxis, :, :], 8, axis=0).reshape(-1, fli.COLS)
+    return np.minimum(Ds[..., 0],
+                      np.take_along_axis(
+                          Ds, cram[:, :, None, None].astype(np.int64), 3)[..., 0])
+
+
+def pick_attributes(lab, sweeps=3):
+    """Pass 1: per-cell color-RAM color and per-sliver screen color pairs.
+
+    The two are coupled -- the best pair depends on what color RAM already
+    covers, and the best color-RAM entry depends on the pairs -- so they are
+    solved by alternating minimisation rather than picked in one shot. The
+    seed is the old majority vote; each sweep then re-picks color RAM to
+    minimise the error the *current* pairs actually leave, and re-picks the
+    pairs against it. Converges in two or three rounds.
+
+    lab: (200,160,3) OkLab image. Returns (screens, colorram, D) where
+    D is the per-pixel distance-squared to each of the 16 colors.
+    """
+    pal = c64color.palette_oklab()
+    d = lab[:, :, None, :] - pal[None, None, :, :]
+    D = (d * d).sum(-1)                                   # (200,160,16)
+    near = np.argmin(D, axis=-1)
+    Ds = D.reshape(H, fli.COLS, 4, 16)                    # sliver-wise
+
+    # seed: the most common non-black color in each cell
+    colorram = np.zeros((fli.ROWS, fli.COLS), dtype=np.uint8)
+    for r in range(fli.ROWS):
+        for c in range(fli.VIS0, fli.COLS):
+            block = near[r * 8:r * 8 + 8, c * 4:c * 4 + 4].ravel()
+            nonblack = block[block != 0]
+            if len(nonblack):
+                colorram[r, c] = np.bincount(nonblack, minlength=16).argmax()
+
+    best_a, best_b = _sliver_pairs(Ds, _base_cost(Ds, colorram))
+    for _ in range(sweeps - 1):
+        # re-pick color RAM: with the pairs fixed, every pixel can already
+        # reach black or one of its sliver's two colors, so score each
+        # candidate by the error it removes on top of that, over the whole cell
+        pair_min = np.minimum(
+            np.take_along_axis(Ds, best_a[:, :, None, None].astype(np.int64), 3),
+            np.take_along_axis(Ds, best_b[:, :, None, None].astype(np.int64), 3))[..., 0]
+        covered = np.minimum(Ds[..., 0], pair_min)                # (200,COLS,4)
+        err = np.minimum(covered[..., None], Ds)                  # (200,COLS,4,16)
+        cell_err = (err.reshape(fli.ROWS, 8, fli.COLS, 4, 16)
+                       .sum(axis=(1, 3)))                         # (25,COLS,16)
+        new_cram = cell_err.argmin(-1).astype(np.uint8)
+        if np.array_equal(new_cram, colorram):
+            break
+        colorram = new_cram
+        best_a, best_b = _sliver_pairs(Ds, _base_cost(Ds, colorram))
 
     screens = np.zeros((8, fli.ROWS, fli.COLS), dtype=np.uint8)
     sb = (best_a.astype(np.uint8) << 4) | best_b
@@ -459,6 +500,10 @@ def main():
     ap.add_argument("--crop")
     ap.add_argument("--pad", type=int, choices=range(16), metavar="0-15",
                     help="C64 color for the side bars on portrait photos")
+    ap.add_argument("--coherence", type=float,
+                    help="hires/afli: how hard neighbouring blocks are pushed to "
+                         "agree on their 2-color pair (default 0.2; 0 = every "
+                         "block decides alone). Steers color choice, not pixels")
     ap.add_argument("--mode", choices=["fli", "afli", "hires", "hires-mono",
                                        "hires-greys"])
     ap.add_argument("--default-mode", choices=["fli", "afli", "hires",
@@ -469,7 +514,8 @@ def main():
 
     s = load_sidecar(args.photo)
     pinned = set(raw_sidecar(args.photo))
-    for k in ("dither", "strength", "sat", "gamma", "crop", "pad", "mode"):
+    for k in ("dither", "strength", "sat", "gamma", "crop", "pad", "coherence",
+              "mode"):
         v = getattr(args, k)
         if v is not None:
             setattr(s, k, v)
