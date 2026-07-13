@@ -19,6 +19,10 @@ render your own with `make_demo_gif.py`).*
 
 ![sample conversions](docs/img/samples.png)
 
+*Eight of the eighteen slides on the shipped disk (Wikimedia Commons, see
+[`samples/SOURCES.txt`](samples/SOURCES.txt)). Regenerate every figure below
+with `python3 tools/make_docs_images.py`.*
+
 - 2–18 slides per disk (ZX0-compressed, loaded by Krill's fast loader) — a
   pair of portrait photos becomes one side-by-side slide, so the photo count
   can be higher than the slide count
@@ -107,8 +111,10 @@ an odd portrait out gets side bars as before.
 - `--crop dx,dy` — shift the crop window (−1..1)
 - `--pad 0-15` — side-bar color for portrait photos (default 0, black)
 - `--mode fli|afli|hires|hires-mono|hires-greys` — per-slide display mode:
-  multicolor FLI (default, smoothest color), **AFLI** (hires FLI: 320-wide
-  detail *and* per-scanline color — arguably the best photo mode; its
+  multicolor FLI (default, smoothest color and the safest choice for an
+  arbitrary photo), **AFLI** (hires FLI: 320-wide detail *and* per-scanline
+  color — superb on detailed, colorful subjects, but only two colors per 8×1
+  strip and no black to fall back on, so it muddies dark shots; its
   hardware-garbage left columns are framed by a light grey border), plain
   hires bitmap (2 colors per 8×8 cell), or the hires mono/grey-ladder looks
   (newsprint engraving). Modes mix freely within one deck — the C64
@@ -125,6 +131,17 @@ that mode, so "all AFLI except the first slide" is just:
 ```bash
 python3 convert.py samples/01.jpg --mode fli
 python3 mkdisk.py --dir samples/ --mode afli
+```
+
+Slides are sized by how well each photo crunches, so a deck that fits in FLI
+can overflow in AFLI — the shipped 18 take 641 blocks as FLI and 683 as AFLI,
+past the 664 a disk holds. `mkdisk.py` refuses to build an over-capacity disk
+rather than quietly shortening the deck; pass **`--fill`** to have it pack as
+many slides as fit instead, dropping from the end (slide order is a priority
+order) and printing every drop:
+
+```bash
+python3 mkdisk.py --mode afli --fill     # 17 of 18 slides, 654/664 blocks
 ```
 
 ## Dithering
@@ -160,6 +177,16 @@ color for resolution; the mono variants turn the dither into the whole
 picture — 1-bit newsprint or a smoother grey ladder. All dizzy 0.5 below:
 
 ![display mode comparison](docs/img/modes.png)
+
+The two rows are chosen to show both sides of the FLI/AFLI trade. On the
+detailed subject (top) AFLI's 320-wide bitmap resolves brickwork and window
+frames that multicolor FLI smears. On the dark subject (bottom) it loses:
+each 8×1 strip in hires gets only the **two** colors of its screen byte, and
+the background color — which FLI can always dither toward, and which this
+project sets to black — plays no part in hires at all. Shadows therefore have
+to be built from the nearest dull pair, and drift brown-olive instead of
+staying black. **Detail-rich and colorful favors AFLI; dark and low-chroma
+favors FLI.** Modes mix freely within one deck, so pick per photo.
 
 All modes quantize in OkLab against Pepto's measured palette, honor each
 sliver's 4-color constraint, and never dither pixels that already sit
